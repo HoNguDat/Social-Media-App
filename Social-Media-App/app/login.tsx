@@ -1,14 +1,41 @@
+import Icon from "@/assets/icons";
 import BackButton from "@/components/BackButton";
+import Button from "@/components/Button";
+import Input from "@/components/Input";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { hp, wp } from "@/helpers/common";
 import { useRouter } from "expo-router";
-import React from "react";
-import { StatusBar, StyleSheet, Text, View } from "react-native";
+import React, { useRef, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { AuthService } from "../services/authService";
 const Login = () => {
   const router = useRouter();
+  const emailRef = useRef("");
+  const passwordRef = useRef("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const onSubmit = async () => {
+    try {
+      setLoading(true);
+      await AuthService.signIn(emailRef.current!, passwordRef.current!);
+      router.replace("/home");
+    } catch (error: any) {
+      Alert.alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
-    <ScreenWrapper>
+    <ScreenWrapper bg="white">
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
         <BackButton router={router} />
@@ -16,7 +43,45 @@ const Login = () => {
           <Text style={styles.welcomeText}>Hey,</Text>
           <Text style={styles.welcomeText}>Welcome Back !</Text>
         </View>
-        <View style={styles.form}></View>
+        <View style={styles.form}>
+          <Text style={{ fontSize: hp(1.5), color: theme.colors.text }}>
+            Enter your email and password to continue
+          </Text>
+          <Input
+            icon={<Icon name="mail" size={26} strokeWidth={1.6} />}
+            placeholder="Enter your email"
+            onChangeText={(value) => (emailRef.current = value)}
+          />
+          <Input
+            icon={<Icon name="lock" size={26} strokeWidth={1.6} />}
+            placeholder="Enter your password"
+            secureTextEntry={!showPassword} //
+            onChangeText={(value) => (passwordRef.current = value)}
+            rightIcon={
+              <Pressable onPress={() => setShowPassword(!showPassword)}>
+                <Icon name={"eye"} size={26} strokeWidth={1.6} />
+              </Pressable>
+            }
+          />
+          <Text style={styles.forgotPassword}>Forgot Password ?</Text>
+          <Button title="Login" onPress={onSubmit} loading={loading} />
+        </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account ?</Text>
+          <Pressable onPress={() => router.push("/signUp")}>
+            <Text
+              style={[
+                styles.footerText,
+                {
+                  color: theme.colors.primaryDark,
+                  fontWeight: theme.fonts.semibold as any,
+                },
+              ]}
+            >
+              Sign Up
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </ScreenWrapper>
   );

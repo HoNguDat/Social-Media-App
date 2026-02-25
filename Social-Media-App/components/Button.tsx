@@ -1,12 +1,12 @@
 import React from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextStyle,
-    View,
-    ViewStyle,
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
 } from "react-native";
 import { theme } from "../constants/theme";
 import { hp } from "../helpers/common";
@@ -52,7 +52,7 @@ const Button: React.FC<ButtonProps> = ({
         styles.button,
         buttonStyle,
         hasShadow && shadowStyle,
-        pressed && { opacity: 0.8 }, // Hiệu ứng khi nhấn vào
+        pressed && { opacity: 0.8 },
       ]}
     >
       <Text style={[styles.text, textStyle]}>{title}</Text>

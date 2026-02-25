@@ -5,6 +5,7 @@ import Camera from "./Camera";
 import Comment from "./Comment";
 import Delete from "./Delete";
 import Edit from "./Edit";
+import Eye from "./Eye";
 import Heart from "./Heart";
 import Home from "./Home";
 import Image from "./Image";
@@ -20,7 +21,6 @@ import ThreeDotsCircle from "./ThreeDotsCircle";
 import ThreeDotsHorizontal from "./ThreeDotsHorizontal";
 import User from "./User";
 import Video from "./Video";
-
 const icons = {
   home: Home,
   mail: Mail,
@@ -43,6 +43,7 @@ const icons = {
   logout: Logout,
   image: Image,
   video: Video,
+  eye: Eye,
 };
 
 const Icon = ({ name, ...props }) => {
