@@ -1,16 +1,16 @@
 import React from "react";
 import {
-    StyleSheet,
-    TextInput,
-    TextInputProps,
-    View,
-    ViewStyle,
+  StyleSheet,
+  TextInput,
+  TextInputProps,
+  View,
+  ViewStyle,
 } from "react-native";
 import { theme } from "../constants/theme";
 import { hp } from "../helpers/common";
 
 interface InputProps extends TextInputProps {
-  containerStyles?: ViewStyle;
+  containerStyle?: ViewStyle;
   rightIcon?: React.ReactNode;
   icon?: React.ReactNode;
   inputRef?: React.RefObject<TextInput>;
@@ -19,7 +19,7 @@ interface InputProps extends TextInputProps {
 const Input = (props: InputProps) => {
   return (
     <View
-      style={[styles.container, props.containerStyles && props.containerStyles]}
+      style={[styles.container, props.containerStyle && props.containerStyle]}
     >
       {props.icon && props.icon}
 

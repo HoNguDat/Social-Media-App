@@ -1,25 +1,14 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
-import Button from "@/components/Button";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
-import { AuthService } from "../services/authService";
-const home = () => {
+import { Pressable, StyleSheet, Text, View } from "react-native";
+const Home = () => {
   const { user, setAuth } = useAuth();
-  const onLogout = async () => {
-    try {
-      await AuthService.signOut();
-
-      router.replace("/login");
-    } catch (error: any) {
-      Alert.alert(error.message);
-    }
-  };
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
@@ -53,13 +42,11 @@ const home = () => {
           </View>
         </View>
       </View>
-
-      <Button title="Sign Out" onPress={onLogout} />
     </ScreenWrapper>
   );
 };
 
-export default home;
+export default Home;
 
 const styles = StyleSheet.create({
   container: {

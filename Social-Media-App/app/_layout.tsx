@@ -13,14 +13,14 @@ const _layout = () => {
   );
 };
 const MainLayout = () => {
-  const { setAuth } = useAuth();
+  const { setAuth, setUserData } = useAuth();
   const router = useRouter();
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       console.log("Session user: ", session?.user);
       if (session) {
         setAuth(session?.user);
-        updateUserData(session?.user);
+        updateUserData(session?.user, session?.user.email);
         router.replace("/home");
       } else {
         setAuth(null);
@@ -28,10 +28,10 @@ const MainLayout = () => {
       }
     });
   }, []);
-  const updateUserData = async (user: User) => {
+  const updateUserData = async (user: User, email: string | undefined) => {
     let res = await getUserData(user?.id);
     if (res.success) {
-      setAuth(res.data);
+      setUserData({ ...res.data, email });
     } else {
       console.log("Failed to fetch user data: ", res.msg);
     }

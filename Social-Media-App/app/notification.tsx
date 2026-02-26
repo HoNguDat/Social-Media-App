@@ -1,14 +1,14 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-const notification = () => {
+const Notification = () => {
   return (
     <View>
-      <Text>notification</Text>
+      <Text>N</Text>
     </View>
   );
 };
 
-export default notification;
+export default Notification;
 
 const styles = StyleSheet.create({});
