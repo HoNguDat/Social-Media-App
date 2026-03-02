@@ -77,7 +77,11 @@ const UserHeader: React.FC<UserHeaderProps> = ({
         <View style={{ gap: 15 }}>
           <View style={styles.avatarContainer}>
             <Avatar
-              uri={user?.image || ""}
+              uri={
+                typeof user?.image === "string"
+                  ? user.image
+                  : user?.image?.uri || ""
+              }
               size={hp(12)}
               rounded={theme.radius.xxl * 1.4}
             />

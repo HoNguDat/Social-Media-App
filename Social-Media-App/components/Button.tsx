@@ -27,7 +27,6 @@ const Button: React.FC<ButtonProps> = ({
   loading = false,
   hasShadow = true,
 }) => {
-  // Cấu hình đổ bóng nếu hasShadow = true
   const shadowStyle: ViewStyle = {
     shadowColor: theme.colors.dark,
     shadowOffset: { width: 0, height: 10 },
@@ -35,8 +34,6 @@ const Button: React.FC<ButtonProps> = ({
     shadowRadius: 8,
     elevation: 4,
   };
-
-  // Nếu đang loading, có thể chặn không cho bấm tiếp
   if (loading) {
     return (
       <View style={[styles.button, buttonStyle, { backgroundColor: "white" }]}>

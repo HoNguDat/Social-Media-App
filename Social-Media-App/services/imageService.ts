@@ -1,3 +1,4 @@
+import { supabaseUrl } from "@/constants";
 import { supabase } from "@/lib/supabase";
 import * as ImagePicker from "expo-image-picker";
 import { ImagePickerAsset } from "expo-image-picker";
@@ -85,4 +86,14 @@ export const getFilePath = (
   const extension = isImage ? ".png" : ".mp4";
 
   return `${folderName}/${Date.now()}${extension}`;
+};
+export const getSupabaseFileUrl = (
+  filePath: string | null,
+): { uri: string } | undefined => {
+  if (filePath) {
+    return {
+      uri: `${supabaseUrl}/storage/v1/object/public/uploads/${filePath}`,
+    };
+  }
+  return undefined;
 };
