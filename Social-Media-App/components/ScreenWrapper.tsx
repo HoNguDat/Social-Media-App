@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { View, ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ScreenWrapperProps {
@@ -7,23 +7,18 @@ interface ScreenWrapperProps {
   bg?: string;
 }
 
-const ScreenWrapper: React.FC<ScreenWrapperProps> = ({ children, bg }) => {
+const ScreenWrapper = ({ children, bg }: ScreenWrapperProps) => {
   const { top } = useSafeAreaInsets();
 
   const paddingTop = top > 0 ? top + 5 : 30;
 
   return (
-    <View
-      style={
-        {
-          flex: 1,
-          paddingTop,
-          backgroundColor: bg,
-        } as ViewStyle
-      }
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: bg }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {children}
-    </View>
+      <View style={{ flex: 1, paddingTop }}>{children}</View>
+    </KeyboardAvoidingView>
   );
 };
 

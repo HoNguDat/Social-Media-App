@@ -1,14 +1,54 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
+import Loading from "@/components/Loading";
+import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
+import { supabase } from "@/lib/supabase";
+import { Post } from "@/models/postModel";
+import { fetchPosts } from "@/services/postService";
+import { getUserData } from "@/services/userService";
 import { router } from "expo-router";
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 const Home = () => {
   const { user, setAuth } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const getPosts = async () => {
+    let limit: number = 0;
+    if (!hasMore) return null;
+    limit = limit + 4;
+    let res = await fetchPosts(limit);
+    console.log("Get posts: ", res);
+    if (res.success && res.data) {
+      if (posts.length == res.data.length) {
+        setHasMore(false);
+      }
+      setPosts(res.data);
+    }
+  };
+  const handlePostEvent = async (payload: any) => {
+    if (payload.eventType == "INSERT" && payload?.new?.id) {
+      let newPost = { ...payload.new };
+      let res = await getUserData(newPost.userId);
+      newPost.user = res.success ? res.data : {};
+      setPosts((prevPosts) => [newPost, ...prevPosts]);
+    }
+  };
+  useEffect(() => {
+    let postChannel = supabase
+      .channel("posts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        handlePostEvent,
+      )
+      .subscribe();
+    // getPosts();
+  }, []);
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
@@ -45,6 +85,35 @@ const Home = () => {
             </Pressable>
           </View>
         </View>
+        {user && (
+          <FlatList<Post>
+            data={posts}
+            showsVerticalScrollIndicator={false}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.listStyle}
+            onEndReached={() => {
+              getPosts();
+              console.log("Got to the end: ");
+            }}
+            onEndReachedThreshold={0}
+            keyExtractor={(item) => item.id?.toString() || ""}
+            renderItem={({ item }: { item: Post }) => (
+              <PostCard item={item} currentUser={user} router={router} />
+            )}
+            ListFooterComponent={
+              hasMore ? (
+                <View style={{ marginVertical: posts.length == 0 ? 200 : 30 }}>
+                  <Loading />
+                </View>
+              ) : (
+                <View style={{ marginVertical: 30 }}>
+                  <Text style={styles.noPost}>No more posts</Text>
+                </View>
+              )
+            }
+          />
+        )}
       </View>
     </ScreenWrapper>
   );

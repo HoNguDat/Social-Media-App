@@ -3,7 +3,7 @@ import React from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 interface LoadingProps {
   size?: "small" | "large";
-  color: string;
+  color?: string;
 }
 const Loading: React.FC<LoadingProps> = ({
   size = "large",

@@ -78,6 +78,49 @@ export const uploadFile = async (
     };
   }
 };
+export const uploadVideo = async (
+  folderName: string,
+  asset: ImagePicker.ImagePickerAsset,
+): Promise<UploadResult> => {
+  try {
+    if (!asset.uri) {
+      return { success: false, msg: "No video uri" };
+    }
+
+    const fileName = getFilePath(folderName, false);
+
+    const response = await fetch(asset.uri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const { data, error } = await supabase.storage
+      .from("uploads")
+      .upload(fileName, arrayBuffer, {
+        contentType: asset.mimeType || "video/mp4",
+      });
+
+    if (error) {
+      return {
+        success: false,
+        msg: error.message,
+      };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("uploads")
+      .getPublicUrl(fileName);
+
+    return {
+      success: true,
+      filePath: fileName,
+      publicUrl: publicUrlData.publicUrl,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      msg: error.message,
+    };
+  }
+};
 export const getFilePath = (
   folderName: string,
 

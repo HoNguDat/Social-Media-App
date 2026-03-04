@@ -7,7 +7,9 @@ import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
+import { Post } from "@/models/postModel";
 import { getSupabaseFileUrl } from "@/services/imageService";
+import { createOrUpdatePost } from "@/services/postService";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -163,20 +165,41 @@ const NewPost = () => {
 
   const onSubmit = async () => {
     if (!bodyRef.current && !file) {
-      Alert.alert("Post", "please choose an image or add post body");
+      Alert.alert("Post", "please add text or media");
       return;
     }
-    let data = {
-      file,
+
+    const postData: Post = {
       body: bodyRef.current,
+      file: file,
       userId: user?.id,
     };
+
+    setLoading(true);
+
+    const res = await createOrUpdatePost(postData);
+
+    setLoading(false);
+
+    console.log("Create post result:", res);
+
+    if (res.success) {
+      (setFile(null),
+        (bodyRef.current = ""),
+        editorRef.current?.setContentHTML(""),
+        router.back());
+    } else {
+      Alert.alert("Create post fail");
+    }
   };
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
         <Header title="Create Post" />
-        <ScrollView contentContainerStyle={{ gap: 10 }}>
+        <ScrollView
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ gap: 10 }}
+        >
           <View style={styles.header}>
             <Avatar
               uri={
@@ -220,28 +243,30 @@ const NewPost = () => {
               </Pressable>
             </View>
           )} */}
-          <View style={styles.file}>
-            {getFileType(file) === "video"
-              ? videoUri && (
-                  <VideoView
-                    player={player}
-                    style={{ flex: 1 }}
-                    nativeControls
-                    contentFit="cover"
-                  />
-                )
-              : uriObj && (
-                  <Image
-                    source={uriObj}
-                    resizeMode="cover"
-                    style={{ flex: 1 }}
-                  />
-                )}
-            <Pressable style={styles.closeIcon} onPress={() => setFile(null)}>
-              <Icon name={"delete"} size={25} color={"white"} />
-            </Pressable>
-          </View>
+          {file && (
+            <View style={styles.file}>
+              {getFileType(file) === "video"
+                ? videoUri && (
+                    <VideoView
+                      player={player}
+                      style={{ flex: 1 }}
+                      nativeControls
+                      contentFit="cover"
+                    />
+                  )
+                : uriObj && (
+                    <Image
+                      source={uriObj}
+                      resizeMode="cover"
+                      style={{ flex: 1 }}
+                    />
+                  )}
 
+              <Pressable style={styles.closeIcon} onPress={() => setFile(null)}>
+                <Icon name={"delete"} size={25} color={"white"} />
+              </Pressable>
+            </View>
+          )}
           <View style={styles.media}>
             <Text style={styles.addImageText}>Add to your post</Text>
             <View style={styles.mediaIcons}>

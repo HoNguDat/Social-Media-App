@@ -3,13 +3,16 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getUserData } from "../services/userService";
 
 const _layout = () => {
   return (
-    <AuthProvider>
-      <MainLayout />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <MainLayout />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 };
 const MainLayout = () => {
@@ -24,7 +27,7 @@ const MainLayout = () => {
         router.replace("/home");
       } else {
         setAuth(null);
-        router.replace("/login");
+        router.replace("/welcome");
       }
     });
   }, []);
