@@ -40,7 +40,14 @@ const MainLayout = () => {
     }
     console.log("User data from DB: ", res);
   };
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="postDetails"
+        options={{ presentation: "modal" }}
+      ></Stack.Screen>
+    </Stack>
+  );
 };
 
 export default _layout;

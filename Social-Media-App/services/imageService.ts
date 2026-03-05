@@ -1,5 +1,7 @@
 import { supabaseUrl } from "@/constants";
 import { supabase } from "@/lib/supabase";
+import { Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { ImagePickerAsset } from "expo-image-picker";
 interface UploadResult {
@@ -139,4 +141,22 @@ export const getSupabaseFileUrl = (
     };
   }
   return undefined;
+};
+export const downloadFile = async (url: string) => {
+  try {
+    const fileName = url.split("/").pop() || "file";
+    const localPath = `${FileSystem.documentDirectory}${fileName}`;
+
+    const { uri } = await FileSystem.downloadAsync(url, localPath);
+
+    return uri;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+export const getLocalFilePath = (filePath: string) => {
+  const fileName = filePath.split("/").pop() || "file";
+
+  return `${Paths.document}/${fileName}`;
 };

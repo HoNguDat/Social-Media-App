@@ -8,4 +8,5 @@ export interface Post {
   userId?: string;
   created_at?: string;
   user?: User;
+  postLikes?: any;
 }

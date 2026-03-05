@@ -1,19 +1,24 @@
 import Icon from "@/assets/icons";
 import { theme } from "@/constants/theme";
-import { hp } from "@/helpers/common";
+import { hp, stripHtmlTags } from "@/helpers/common";
+import { CreatePostLike, PostLike } from "@/models/postLikes";
 import { Post } from "@/models/postModel";
 import { User } from "@/models/userModel";
+import { downloadFile, getSupabaseFileUrl } from "@/services/imageService";
+import { createPostLike, removePostLike } from "@/services/postService";
 import { Image } from "expo-image";
 import { Router } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import moment from "moment";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import RenderHtml from "react-native-render-html";
 import Avatar from "./Avatar";
@@ -38,6 +43,7 @@ const tagsStyles = {
     color: theme.colors.dark,
   },
 };
+
 const PostCard: React.FC<PostCardProps> = ({
   item,
   currentUser,
@@ -53,8 +59,10 @@ const PostCard: React.FC<PostCardProps> = ({
     shadowRadius: 6,
     elevation: 1,
   };
-  const likes: number[] = [];
-  const liked = false;
+  const [likes, setLikes] = useState<PostLike[]>([]);
+  const liked = likes.filter((like) => like.userId == currentUser.id)[0]
+    ? true
+    : false;
   const created_at = moment(item.created_at).format("MMM D");
   const videoSource =
     typeof item?.file === "string" && item.file.includes("postVideos")
@@ -64,9 +72,64 @@ const PostCard: React.FC<PostCardProps> = ({
   const player = videoSource
     ? useVideoPlayer(videoSource, (player) => {
         player.loop = true;
+        player.play();
       })
     : null;
-  const openPostDetails = () => {};
+  useEffect(() => {
+    setLikes(item?.postLikes || []);
+  }, [item]);
+  const openPostDetails = () => {
+    router.push({ pathname: "/postDetails", params: { postId: item?.id } });
+  };
+  const onLike = async () => {
+    if (liked) {
+      let updatedLikes = likes.filter((like) => like.userId != currentUser.id);
+      setLikes([...updatedLikes]);
+      let res = await removePostLike(item?.id || "", currentUser?.id);
+
+      if (!res.success) {
+        Alert.alert("Post", "Something went wrong !");
+      }
+    } else {
+      const data: CreatePostLike = {
+        userId: currentUser?.id || "",
+        postId: item?.id || "",
+      };
+
+      setLikes((prev) => [...prev, data as any]);
+
+      let res = await createPostLike(data);
+
+      if (!res.success) {
+        Alert.alert("Post", "Something went wrong !");
+      }
+    }
+  };
+
+  const onShare = async () => {
+    const content: {
+      message: string;
+      url?: string;
+    } = {
+      message: stripHtmlTags(item?.body || "Check out this post!"),
+    };
+
+    if (item?.file && typeof item.file === "string") {
+      console.log("Share file: ", item.file);
+      const fileUrl = getSupabaseFileUrl(item.file);
+
+      if (fileUrl?.uri) {
+        const url = await downloadFile(fileUrl.uri);
+
+        if (url) {
+          content.url = url;
+        }
+      }
+    }
+
+    Share.share(content);
+  };
+
   return (
     <View style={[styles.container, hasShadow && shadowStyles]}>
       <View style={styles.header}>
@@ -121,13 +184,12 @@ const PostCard: React.FC<PostCardProps> = ({
               style={[styles.postMedia, { height: hp(30) }]}
               nativeControls
               contentFit="cover"
-              pointerEvents="none"
             />
           )}
       </View>
       <View style={styles.footer}>
         <View style={styles.footerButton}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onLike}>
             <Icon
               name="heart"
               size={24}
@@ -138,16 +200,15 @@ const PostCard: React.FC<PostCardProps> = ({
           <Text style={styles.count}>{likes?.length}</Text>
         </View>
         <View style={styles.footerButton}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={openPostDetails}>
             <Icon name="comment" size={24} color={theme.colors.textDark} />
           </TouchableOpacity>
           <Text style={styles.count}>18</Text>
         </View>
         <View style={styles.footerButton}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onShare}>
             <Icon name="share" size={24} color={theme.colors.textDark} />
           </TouchableOpacity>
-          <Text style={styles.count}>5</Text>
         </View>
       </View>
     </View>
