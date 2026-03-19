@@ -94,7 +94,6 @@ const Home = () => {
             contentContainerStyle={styles.listStyle}
             onEndReached={() => {
               getPosts();
-              console.log("Got to the end: ");
             }}
             onEndReachedThreshold={0}
             keyExtractor={(item) => item.id?.toString() || ""}

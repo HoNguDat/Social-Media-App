@@ -27,6 +27,7 @@ interface PostCardProps {
   currentUser: User;
   router: Router;
   hasShadow?: boolean;
+  showMoreIcon?: boolean;
 }
 const textStyle = {
   color: theme.colors.dark,
@@ -49,6 +50,7 @@ const PostCard: React.FC<PostCardProps> = ({
   currentUser,
   router,
   hasShadow = true,
+  showMoreIcon = true,
 }) => {
   const shadowStyles = {
     shadowOffset: {
@@ -72,6 +74,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const player = videoSource
     ? useVideoPlayer(videoSource, (player) => {
         player.loop = true;
+        player.muted = true;
         player.play();
       })
     : null;
@@ -79,6 +82,7 @@ const PostCard: React.FC<PostCardProps> = ({
     setLikes(item?.postLikes || []);
   }, [item]);
   const openPostDetails = () => {
+    if (!showMoreIcon) return null;
     router.push({ pathname: "/postDetails", params: { postId: item?.id } });
   };
   const onLike = async () => {
@@ -148,14 +152,16 @@ const PostCard: React.FC<PostCardProps> = ({
             <Text style={styles.userName}>{created_at}</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={openPostDetails}>
-          <Icon
-            name="threeDotsHorizontal"
-            size={hp(3.4)}
-            strokeWidth={3}
-            color={theme.colors.text}
-          />
-        </TouchableOpacity>
+        {showMoreIcon && (
+          <TouchableOpacity onPress={openPostDetails}>
+            <Icon
+              name="threeDotsHorizontal"
+              size={hp(3.4)}
+              strokeWidth={3}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
+        )}
       </View>
       <View style={styles.content}>
         <View style={styles.postBody}>
@@ -216,7 +222,6 @@ const PostCard: React.FC<PostCardProps> = ({
 };
 
 export default PostCard;
-
 const styles = StyleSheet.create({
   container: {
     gap: 10,

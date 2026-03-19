@@ -30,6 +30,29 @@ export const fetchPosts = async (limit = 10) => {
     };
   }
 };
+export const fetchPostDetails = async (postId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("posts")
+      .select(
+        `*,user: users(id, name, image),
+        postLikes(*)`,
+      )
+      .eq("id", postId)
+      .single();
+    if (error) {
+      console.log("Fetchs post details error: ", error);
+      return { success: false, msg: error.message };
+    }
+    return { success: true, data };
+  } catch (error) {
+    console.log("Fetchs post details error:", error);
+    return {
+      success: false,
+      msg: "An error occurred while fetching post details data",
+    };
+  }
+};
 export const createPostLike = async (postLike: any) => {
   try {
     const { data, error } = await supabase

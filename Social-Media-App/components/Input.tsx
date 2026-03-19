@@ -13,7 +13,7 @@ interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle;
   rightIcon?: React.ReactNode;
   icon?: React.ReactNode;
-  inputRef?: React.RefObject<TextInput>;
+  inputRef?: React.RefObject<TextInput | null>;
 }
 
 const Input = (props: InputProps) => {

@@ -2,9 +2,9 @@ import { theme } from "@/constants/theme";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
-    RichEditor,
-    RichToolbar,
-    actions,
+  RichEditor,
+  RichToolbar,
+  actions,
 } from "react-native-pell-rich-editor";
 type Props = {
   editorRef: React.RefObject<RichEditor | null>;
