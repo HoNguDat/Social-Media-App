@@ -2,6 +2,9 @@ import { theme } from "../../constants/theme";
 import ArrowLeft from "./ArrowLeft";
 import Call from "./Call";
 import Camera from "./Camera";
+import Cancel from "./Cancel";
+import CircleMinus from "./CircleMinus";
+import Circleplus from "./CirclePlus";
 import Comment from "./Comment";
 import Delete from "./Delete";
 import Edit from "./Edit";
@@ -9,6 +12,7 @@ import Eye from "./Eye";
 import Heart from "./Heart";
 import Home from "./Home";
 import Image from "./Image";
+import ListView from "./ListView";
 import Location from "./Location";
 import Lock from "./Lock";
 import Logout from "./logout";
@@ -44,6 +48,10 @@ const icons = {
   image: Image,
   video: Video,
   eye: Eye,
+  listView: ListView,
+  circlePlus: Circleplus,
+  circleMinus: CircleMinus,
+  cancel: Cancel,
 };
 
 const Icon = ({ name, ...props }) => {

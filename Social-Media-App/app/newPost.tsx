@@ -173,6 +173,7 @@ const NewPost = () => {
       body: bodyRef.current,
       file: file,
       userId: user?.id,
+      comments: [],
     };
 
     setLoading(true);

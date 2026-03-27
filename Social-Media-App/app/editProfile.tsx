@@ -104,49 +104,53 @@ const EditProfile = () => {
 
   return (
     <ScreenWrapper bg="white">
-      <View style={styles.container}>
-        <ScrollView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
+        <View style={styles.container}>
           <Header title="Edit Profile" />
-          <View style={styles.form}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={getUserImageSrc(user.image)}
-                style={styles.avatar}
+          <ScrollView style={{ flex: 1 }}>
+            <View style={styles.form}>
+              <View style={styles.avatarContainer}>
+                <Image
+                  source={getUserImageSrc(user.image)}
+                  style={styles.avatar}
+                />
+                <Pressable style={styles.cameraIcon} onPress={onPickImage}>
+                  <Icon name={"camera"} size={20} strokeWidth={2.5} />
+                </Pressable>
+              </View>
+              <Text style={{ fontSize: hp(1.5), color: theme.colors.text }}>
+                Please fill your profile details
+              </Text>
+              <Input
+                icon={<Icon name={"user"} />}
+                placeholder="Enter your name"
+                value={user.name}
+                onChangeText={(value) => setUser({ ...user, name: value })}
               />
-              <Pressable style={styles.cameraIcon} onPress={onPickImage}>
-                <Icon name={"camera"} size={20} strokeWidth={2.5} />
-              </Pressable>
+              <Input
+                icon={<Icon name={"call"} />}
+                placeholder="Enter your phone number"
+                value={user.phoneNumber}
+                onChangeText={(value) =>
+                  setUser({ ...user, phoneNumber: value })
+                }
+              />
+              <Input
+                icon={<Icon name={"location"} />}
+                placeholder="Enter your address"
+                value={user.address}
+                onChangeText={(value) => setUser({ ...user, address: value })}
+              />
+              <Input
+                placeholder="Enter your bio"
+                value={user.bio}
+                containerStyle={styles.bio}
+                onChangeText={(value) => setUser({ ...user, bio: value })}
+              />
+              <Button title="Update" loading={loading} onPress={onSubmit} />
             </View>
-            <Text style={{ fontSize: hp(1.5), color: theme.colors.text }}>
-              Please fill your profile details
-            </Text>
-            <Input
-              icon={<Icon name={"user"} />}
-              placeholder="Enter your name"
-              value={user.name}
-              onChangeText={(value) => setUser({ ...user, name: value })}
-            />
-            <Input
-              icon={<Icon name={"call"} />}
-              placeholder="Enter your phone number"
-              value={user.phoneNumber}
-              onChangeText={(value) => setUser({ ...user, phoneNumber: value })}
-            />
-            <Input
-              icon={<Icon name={"location"} />}
-              placeholder="Enter your address"
-              value={user.address}
-              onChangeText={(value) => setUser({ ...user, address: value })}
-            />
-            <Input
-              placeholder="Enter your bio"
-              value={user.bio}
-              containerStyle={styles.bio}
-              onChangeText={(value) => setUser({ ...user, bio: value })}
-            />
-            <Button title="Update" loading={loading} onPress={onSubmit} />
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
       </View>
     </ScreenWrapper>
   );

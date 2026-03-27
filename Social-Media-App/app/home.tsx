@@ -1,92 +1,103 @@
-import Icon from "@/assets/icons";
-import Avatar from "@/components/Avatar";
+import BottomTab from "@/components/BottomTab";
+import HomeHeader from "@/components/HomeHeader";
 import Loading from "@/components/Loading";
 import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
+import { useScrollTabAnimation } from "@/hooks/useScrollTabAnimation";
 import { supabase } from "@/lib/supabase";
 import { Post } from "@/models/postModel";
-import { fetchPosts } from "@/services/postService";
+import { fetchPostDetails, fetchPosts } from "@/services/postService";
 import { getUserData } from "@/services/userService";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 const Home = () => {
-  const { user, setAuth } = useAuth();
+  const { translateY, scrollHandler } = useScrollTabAnimation();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [hasMore, setHasMore] = useState(true);
+  const [limit, setLimit] = useState(4);
+
   const getPosts = async () => {
-    let limit: number = 0;
-    if (!hasMore) return null;
-    limit = limit + 4;
+    if (!hasMore) return;
+
     let res = await fetchPosts(limit);
-    console.log("Get posts: ", res);
     if (res.success && res.data) {
-      if (posts.length == res.data.length) {
+      if (res.data.length === posts.length) {
         setHasMore(false);
       }
       setPosts(res.data);
+      setLimit((prev) => prev + 4);
     }
   };
   const handlePostEvent = async (payload: any) => {
-    if (payload.eventType == "INSERT" && payload?.new?.id) {
+    console.log("Realtime Payload nhận được:", payload);
+    if (payload.eventType === "INSERT" && payload?.new?.id) {
       let newPost = { ...payload.new };
       let res = await getUserData(newPost.userId);
       newPost.user = res.success ? res.data : {};
+      newPost.postLikes = [];
+      newPost.comments = [{ count: 0 }];
       setPosts((prevPosts) => [newPost, ...prevPosts]);
     }
+    if (payload.eventType === "DELETE" && payload?.old?.id) {
+      setPosts((prevPosts) =>
+        prevPosts.filter((post) => post.id !== payload.old.id),
+      );
+    }
+
+    if (payload.eventType === "UPDATE") {
+      // 1. Lấy dữ liệu đầy đủ nhất (bao gồm Likes, Comments, User) của bài viết này
+      // Bạn nên dùng hàm fetchPostDetails (hoặc fetchPosts với filter ID)
+      let res = await fetchPostDetails(payload.new.id);
+
+      if (res.success && res.data) {
+        const fullUpdatedPost = res.data;
+
+        setPosts((prevPosts) => {
+          return prevPosts.map((post) => {
+            // So sánh ID và thay thế toàn bộ bằng dữ liệu mới nhất từ DB
+            if (String(post.id) === String(fullUpdatedPost.id)) {
+              return fullUpdatedPost;
+            }
+            return post;
+          });
+        });
+        console.log("Đã cập nhật bài viết với đầy đủ Like/Comment mới!");
+      }
+    }
   };
+
   useEffect(() => {
-    let postChannel = supabase
-      .channel("posts")
+    const postChannel = supabase
+      .channel("posts-room")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "posts" },
         handlePostEvent,
       )
       .subscribe();
-    // getPosts();
+    getPosts();
+    return () => {
+      supabase.removeChannel(postChannel);
+    };
   }, []);
+
+  const handlePostDelete = (postId: number) => {
+    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+  };
   return (
     <ScreenWrapper bg="white">
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>LinkUp</Text>
-          <View style={styles.icon}>
-            <Pressable onPress={() => router.push("/notification")}>
-              <Icon
-                name={"heart"}
-                size={hp(3.2)}
-                strokeWidth={2}
-                color={theme.colors.text}
-              />
-            </Pressable>
-            <Pressable onPress={() => router.push("/newPost")}>
-              <Icon
-                name={"plus"}
-                size={hp(3.2)}
-                strokeWidth={2}
-                color={theme.colors.text}
-              />
-            </Pressable>
-            <Pressable onPress={() => router.push("/profile")}>
-              <Avatar
-                size={hp(4.3)}
-                uri={
-                  typeof user?.image === "string"
-                    ? user.image
-                    : user?.image?.uri || ""
-                }
-                rounded={theme.radius.sm}
-                style={{ borderWidth: 2 }}
-              />
-            </Pressable>
-          </View>
-        </View>
+        <HomeHeader user={user} />
         {user && (
-          <FlatList<Post>
+          <Animated.FlatList<Post>
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
             data={posts}
             showsVerticalScrollIndicator={false}
             keyboardDismissMode="on-drag"
@@ -98,7 +109,12 @@ const Home = () => {
             onEndReachedThreshold={0}
             keyExtractor={(item) => item.id?.toString() || ""}
             renderItem={({ item }: { item: Post }) => (
-              <PostCard item={item} currentUser={user} router={router} />
+              <PostCard
+                item={item}
+                currentUser={user}
+                router={router}
+                onDelete={handlePostDelete}
+              />
             )}
             ListFooterComponent={
               hasMore ? (
@@ -113,6 +129,7 @@ const Home = () => {
             }
           />
         )}
+        <BottomTab translateY={translateY} user={user} />
       </View>
     </ScreenWrapper>
   );

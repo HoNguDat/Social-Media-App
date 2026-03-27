@@ -1,15 +1,36 @@
+import Icon from "@/assets/icons";
+import CommentItem from "@/components/CommentItem";
+import Header from "@/components/Header";
 import Input from "@/components/Input";
 import Loading from "@/components/Loading";
 import PostCard from "@/components/PostCard";
+import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
+import { supabase } from "@/lib/supabase";
+import { Comment } from "@/models/comment";
 import { Post } from "@/models/postModel";
 import { User } from "@/models/userModel";
-import { fetchPostDetails } from "@/services/postService";
+import {
+  createComment,
+  fetchPostDetails,
+  removeComment,
+} from "@/services/postService";
+import { getUserData } from "@/services/userService";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const PostDetails = () => {
   const { postId } = useLocalSearchParams();
@@ -17,11 +38,48 @@ const PostDetails = () => {
   const router = useRouter();
   const [startLoading, setStartLoading] = useState(true);
   const [post, setPosts] = useState<Post | null>(null);
-  const inputRef = useRef(null);
-  console.log("PostID", postId);
+  const inputRef = useRef<TextInput>(null);
+  const commentRef = useRef("");
+  const [loading, setLoading] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   useEffect(() => {
+    const commentChannel = supabase
+      .channel("comments")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "comments",
+          filter: `postId=eq.${postId}`,
+        },
+        handleNewComment,
+      )
+      .subscribe();
     getPostDetails();
-  }, []);
+    return () => {
+      supabase.removeChannel(commentChannel);
+      setPosts(null);
+      setStartLoading(true);
+    };
+  }, [postId]);
+  const handleNewComment = async (payload: any) => {
+    console.log("got new comment", payload.new);
+
+    if (payload.new) {
+      let newComment = { ...payload.new };
+      const res = await getUserData(newComment.userId);
+      newComment.user = res.success ? res.data : {};
+      setPosts((prevPost: Post | null) => {
+        if (!prevPost) return null;
+
+        return {
+          ...prevPost,
+          comments: [newComment, ...(prevPost.comments || [])],
+        };
+      });
+    }
+  };
   const getPostDetails = async () => {
     const id = Array.isArray(postId) ? postId[0] : postId;
     if (id) {
@@ -33,6 +91,46 @@ const PostDetails = () => {
       setStartLoading(false);
     }
   };
+  const onNewComment = async () => {
+    if (!commentRef.current || commentRef.current.trim() === "") return null;
+    let data: Comment = {
+      userId: user?.id,
+      postId: post?.id,
+      text: commentRef.current,
+    };
+    setLoading(true);
+    let res = await createComment(data);
+    setLoading(false);
+    if (res.success) {
+      inputRef?.current?.clear();
+      commentRef.current = "";
+    } else {
+      Alert.alert("Comment", res.msg);
+    }
+  };
+  const isComment = (item: any): item is Comment => {
+    return item && typeof item === "object" && "user" in item;
+  };
+  const onDeleteComment = async (comment: Comment) => {
+    if (!comment?.id) return;
+
+    const res = await removeComment(comment.id);
+
+    if (res.success) {
+      setPosts((prevPost) => {
+        if (!prevPost) return null;
+        const updatedComments = prevPost.comments?.filter((c) => {
+          return "id" in c && c.id !== comment.id;
+        });
+        return {
+          ...prevPost,
+          comments: updatedComments,
+        };
+      });
+    }
+  };
+  const onDeletePost = async () => {};
+  const onUpdatePost = async () => {};
   if (startLoading) {
     return (
       <View style={styles.center}>
@@ -40,35 +138,98 @@ const PostDetails = () => {
       </View>
     );
   }
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+  if (!post) {
+    return (
+      <View
+        style={[
+          styles.center,
+          { justifyContent: "flex-start", marginTop: 100 },
+        ]}
       >
-        {post && (
-          <PostCard
-            item={post as Post}
-            currentUser={user as User}
-            router={router}
-            hasShadow={false}
-            showMoreIcon={false}
-          />
-        )}
-        <View style={styles.inputContainer}>
-          <Input
-            inputRef={inputRef}
-            placeholder="Type comment..."
-            placeholderTextColor={theme.colors.textLight}
-            containerStyle={{
-              flex: 1,
-              height: hp(6.2),
-              borderRadius: theme.radius.xl,
-            }}
-          />
+        <Text style={styles.notFound}>404 Not found !</Text>
+      </View>
+    );
+  }
+  return (
+    <ScreenWrapper bg="white">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+      >
+        <View style={styles.container}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.list, { paddingBottom: 30 }]}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+          >
+            <Header title="Bài viết" showBackButton={true} />
+            {post && (
+              <PostCard
+                item={{
+                  ...(post as Post),
+                  comments: [{ count: post?.comments?.length ?? 0 }],
+                }}
+                currentUser={user as User}
+                router={router}
+                hasShadow={false}
+                showMoreIcon={true}
+              />
+            )}
+            <View style={{ marginVertical: 15, gap: 17 }}>
+              {post?.comments?.map((comment) => {
+                if (isComment(comment)) {
+                  return (
+                    <CommentItem
+                      key={comment.id?.toString()}
+                      item={comment}
+                      canDelete={
+                        user?.id === comment.user?.id ||
+                        user?.id === post.userId
+                      }
+                      onDelete={onDeleteComment}
+                    />
+                  );
+                }
+                return null;
+              })}
+
+              {post?.comments?.length === 0 && (
+                <Text style={{ color: theme.colors.text, marginLeft: 5 }}>
+                  Be first comment
+                </Text>
+              )}
+            </View>
+          </ScrollView>
+          <View style={styles.stickyInputContainer}>
+            <Input
+              inputRef={inputRef}
+              placeholder="Type comment..."
+              onChangeText={(value) => (commentRef.current = value)}
+              placeholderTextColor={theme.colors.textLight}
+              containerStyle={{
+                flex: 1,
+                height: hp(6.2),
+                borderRadius: theme.radius.xl,
+                backgroundColor: "white",
+                borderWidth: 0.5,
+                borderColor: theme.colors.gray,
+              }}
+            />
+            {loading ? (
+              <View style={styles.loading}>
+                <Loading size="small" />
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.sendIcon} onPress={onNewComment}>
+                <Icon name="send" color={theme.colors.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </ScrollView>
-    </View>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 };
 
@@ -78,7 +239,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    paddingVertical: wp(7),
+
+    overflow: "hidden",
+  },
+  stickyInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    borderTopWidth: 0.5,
+    borderTopColor: theme.colors.gray,
+    backgroundColor: "white",
+    // Xử lý khoảng cách cho iPhone đời mới (Safe Area)
+    marginBottom: Platform.OS === "ios" ? hp(1) : 0,
+  },
+  inputStyle: {
+    flex: 1,
+    height: hp(6.2),
+    borderRadius: theme.radius.xl,
+    backgroundColor: "white",
+    borderWidth: 0.5,
+    borderColor: theme.colors.gray,
   },
   inputContainer: {
     flexDirection: "row",

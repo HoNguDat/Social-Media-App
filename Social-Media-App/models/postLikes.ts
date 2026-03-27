@@ -6,5 +6,5 @@ export interface PostLike {
 }
 export interface CreatePostLike {
   userId?: string | undefined;
-  postId?: string;
+  postId?: number;
 }
