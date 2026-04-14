@@ -160,3 +160,27 @@ export const getLocalFilePath = (filePath: string) => {
 
   return `${Paths.document}/${fileName}`;
 };
+
+export const deleteFile = async (fileIdentifier: string | null) => {
+  try {
+    if (!fileIdentifier) return { success: true };
+
+    let filePath = fileIdentifier;
+
+    if (fileIdentifier.includes("storage/v1/object/public/uploads/")) {
+      filePath = fileIdentifier.split("storage/v1/object/public/uploads/")[1];
+    }
+
+    const { error } = await supabase.storage.from("uploads").remove([filePath]);
+
+    if (error) {
+      console.log("Error deleting file: ", error);
+      return { success: false, msg: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.log("Error deleting file: ", error);
+    return { success: false, msg: error.message };
+  }
+};

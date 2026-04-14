@@ -2,373 +2,333 @@ import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
 import Button from "@/components/Button";
 import Header from "@/components/Header";
-import RichTextEditor from "@/components/RichTextEditor";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
-import { Post } from "@/models/postModel";
-import { getSupabaseFileUrl } from "@/services/imageService";
+import { MediaFile } from "@/models/mediaFile";
+import { getSupabaseFileUrl } from "@/services/fileService";
 import { createOrUpdatePost } from "@/services/postService";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { RichEditor } from "react-native-pell-rich-editor";
+
 const NewPost = () => {
   const { user } = useAuth();
-  const bodyRef = useRef("");
-  const editorRef = useRef<RichEditor | null>(null);
+  const [body, setBody] = useState("");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  // const [file, setFile] = useState<
-  //   string | ImagePicker.ImagePickerAsset | null
-  // >(null);
-  const [file, setFile] = useState<
-    string | ImagePicker.ImagePickerAsset | null
-  >(null);
-  // const onPick = async (isImage: boolean) => {
-  //   let mediaConfig: ImagePicker.ImagePickerOptions = {
-  //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //     allowsEditing: true,
-  //     aspect: [4, 3],
-  //     quality: 0.7,
-  //   };
+  const { theme } = useTheme();
+  const [file, setFile] = useState<MediaFile>(null);
+  const params = useLocalSearchParams();
 
-  //   if (!isImage) {
-  //     mediaConfig = {
-  //       mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-  //       allowsEditing: true,
-  //     };
-  //   }
+  useEffect(() => {
+    if (params.id) {
+      setBody(String(params.body || ""));
+      if (params.file) {
+        let fileData = params.file as string;
+        if (fileData.startsWith("{") || fileData.startsWith("[")) {
+          try {
+            setFile(JSON.parse(fileData));
+          } catch (e) {
+            setFile(fileData);
+          }
+        } else {
+          setFile(fileData);
+        }
+      }
+    } else {
+      setBody("");
+      setFile(null);
+    }
+  }, [params.id, params.body, params.file]);
 
-  //   const result = await ImagePicker.launchImageLibraryAsync(mediaConfig);
-  //   if (!result.canceled) {
-  //     setFile(result.assets[0]);
-  //   }
-  // };
-  const onPick = async (isImage: boolean) => {
+  const isEdit = !!params.id;
+  const onPick = useCallback(async (isImage: boolean) => {
     let mediaConfig: ImagePicker.ImagePickerOptions = {
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: isImage
+        ? ImagePicker.MediaTypeOptions.Images
+        : ImagePicker.MediaTypeOptions.Videos,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.7,
     };
-
-    if (!isImage) {
-      mediaConfig = {
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
-      };
-    }
-
     const result = await ImagePicker.launchImageLibraryAsync(mediaConfig);
+    if (!result.canceled) setFile(result.assets[0]);
+  }, []);
 
-    if (!result.canceled) {
-      setFile(result.assets[0]);
-    }
-  };
-  // type FileType = string | ImagePickerAsset | null;
-  // const isLocalFile = (file: FileType): boolean => {
-  //   if (!file) return false;
-  //   return typeof file === "object";
-  // };
-  // const getFileType = (file: FileType): "image" | "video" | null => {
-  //   if (!file) return null;
+  const isLocalFile = useCallback(
+    (file: MediaFile): file is ImagePicker.ImagePickerAsset => {
+      return typeof file === "object" && file !== null;
+    },
+    [],
+  );
 
-  //   if (isLocalFile(file)) {
-  //     return (file as ImagePickerAsset).type === "video" ? "video" : "image";
-  //   }
-  //   if (typeof file === "string" && file.includes("postImage")) {
-  //     return "image";
-  //   }
+  const getFileType = useCallback(
+    (file: MediaFile) => {
+      if (!file) return null;
+      if (isLocalFile(file)) return file.type === "video" ? "video" : "image";
+      if (typeof file === "string") {
+        const isVideo =
+          file.includes("postVideos") ||
+          file.toLowerCase().includes(".mp4") ||
+          file.toLowerCase().includes(".mov");
+        return isVideo ? "video" : "image";
+      }
+      return null;
+    },
+    [isLocalFile],
+  );
 
-  //   return "video";
-  // };
-  // const getFileUri = (file: FileType): { uri: string } | undefined => {
-  //   if (!file) return undefined;
+  const getFileUri = useCallback(
+    (file: MediaFile) => {
+      if (!file) return null;
 
-  //   if (isLocalFile(file)) {
-  //     return { uri: (file as ImagePickerAsset).uri };
-  //   }
+      if (isLocalFile(file)) return { uri: file.uri };
 
-  //   return getSupabaseFileUrl(file as string);
-  // };
-  type FileType = string | ImagePicker.ImagePickerAsset | null;
+      if (typeof file === "string") {
+        if (file.startsWith("http")) return { uri: file };
+        return getSupabaseFileUrl(file);
+      }
+      return null;
+    },
+    [isLocalFile],
+  );
 
-  const isLocalFile = (
-    file: FileType,
-  ): file is ImagePicker.ImagePickerAsset => {
-    return typeof file === "object" && file !== null;
-  };
-
-  const getFileType = (file: FileType): "image" | "video" | null => {
+  const uriObj = useMemo(() => getFileUri(file), [file, getFileUri]);
+  const videoUri = useMemo(() => {
     if (!file) return null;
-
-    if (isLocalFile(file)) {
-      return file.type === "video" ? "video" : "image";
-    }
-
+    if (isLocalFile(file)) return file.uri;
     if (typeof file === "string") {
-      if (file.endsWith(".mp4") || file.endsWith(".mov")) return "video";
-      return "image";
+      if (file.startsWith("http")) return file;
+      const res = getSupabaseFileUrl(file);
+      return res?.uri;
     }
-
     return null;
-  };
-
-  const getFileUri = (file: FileType): { uri: string } | null => {
-    if (!file) return null;
-
-    if (isLocalFile(file)) {
-      return { uri: file.uri };
-    }
-
-    if (typeof file === "string") {
-      return getSupabaseFileUrl(file) ?? null;
-    }
-
-    return null;
-  };
-  const getVideoUri = (file: FileType): string | null => {
-    if (!file) return null;
-
-    if (isLocalFile(file)) {
-      return file.uri;
-    }
-
-    if (typeof file === "string") {
-      return getSupabaseFileUrl(file)?.uri ?? null;
-    }
-
-    return null;
-  };
-  const uriObj = getFileUri(file);
-  const videoUri = getVideoUri(file);
-
-  console.log("FILE:", file);
-  console.log("IMAGE URI:", uriObj);
-  console.log("VIDEO URI:", videoUri);
-  const player = useVideoPlayer(videoUri ?? "", (player) => {
+  }, [file, isLocalFile]);
+  const handleVideoSetup = useCallback((player: any) => {
     player.loop = true;
-  });
+  }, []);
+  const player = useVideoPlayer(videoUri ?? "", handleVideoSetup);
 
-  const onSubmit = async () => {
-    if (!bodyRef.current && !file) {
-      Alert.alert("Post", "please add text or media");
+  const onSubmit = useCallback(async () => {
+    if (!body.trim() && !file) {
+      Alert.alert("Bài viết", "Vui lòng thêm nội dung hoặc hình ảnh/video");
       return;
     }
+    setLoading(true);
 
-    const postData: Post = {
-      body: bodyRef.current,
-      file: file,
+    // 5. Thêm ID vào data để thực hiện Update (Upsert)
+    const postData: any = {
+      body,
+      file,
       userId: user?.id,
       comments: [],
     };
 
-    setLoading(true);
+    if (isEdit) postData.id = params.id;
 
     const res = await createOrUpdatePost(postData);
-
     setLoading(false);
 
-    console.log("Create post result:", res);
-
     if (res.success) {
-      (setFile(null),
-        (bodyRef.current = ""),
-        editorRef.current?.setContentHTML(""),
-        router.back());
+      setBody("");
+      setFile(null);
+      router.back();
     } else {
-      Alert.alert("Create post fail");
+      Alert.alert("Lỗi", "Không thể lưu bài viết");
     }
-  };
-  return (
-    <ScreenWrapper bg="white">
-      <View style={styles.container}>
-        <Header title="Create Post" />
-        <ScrollView
-          keyboardDismissMode="on-drag"
-          contentContainerStyle={{ gap: 10 }}
-        >
-          <View style={styles.header}>
-            <Avatar
-              uri={
-                typeof user?.image === "string"
-                  ? user.image
-                  : user?.image?.uri || ""
-              }
-              size={hp(6.5)}
-              rounded={theme.radius.xl}
-            />
-            <View style={{ gap: 2 }}>
-              <Text style={styles.username}>{user && user.name}</Text>
-              <Text style={styles.publicText}>Public</Text>
-            </View>
-          </View>
-          <View style={styles.textEditor}>
-            <RichTextEditor
-              editorRef={editorRef}
-              onChange={(body) => (bodyRef.current = body)}
-            />
-          </View>
-          {/* {file && (
-            <View style={styles.file}>
-              {getFileType(file) == "video" ? (
-                <Video
-                  style={{ flex: 1 }}
-                  source={getFileUri(file)}
-                  useNativeControls
-                  resizeMode={ResizeMode.COVER}
-                  isLooping
-                />
-              ) : (
-                <Image
-                  source={getFileUri(file)}
-                  resizeMode="cover"
-                  style={{ flex: 1 }}
-                />
-              )}
-              <Pressable style={styles.closeIcon} onPress={() => setFile(null)}>
-                <Icon name={"delete"} size={25} color={"white"} />
-              </Pressable>
-            </View>
-          )} */}
-          {file && (
-            <View style={styles.file}>
-              {getFileType(file) === "video"
-                ? videoUri && (
-                    <VideoView
-                      player={player}
-                      style={{ flex: 1 }}
-                      nativeControls
-                      contentFit="cover"
-                    />
-                  )
-                : uriObj && (
-                    <Image
-                      source={uriObj}
-                      resizeMode="cover"
-                      style={{ flex: 1 }}
-                    />
-                  )}
+  }, [body, file, user?.id, router, isEdit, params.id]);
 
-              <Pressable style={styles.closeIcon} onPress={() => setFile(null)}>
-                <Icon name={"delete"} size={25} color={"white"} />
-              </Pressable>
+  return (
+    <ScreenWrapper bg={theme.colors.background}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.container}>
+          <Header title={isEdit ? "Chỉnh sửa bài viết" : "Bài viết mới"} />
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ gap: 15 }}
+          >
+            <View style={styles.header}>
+              <Avatar
+                uri={
+                  typeof user?.image === "string"
+                    ? user.image
+                    : user?.image?.uri || ""
+                }
+                size={hp(6.5)}
+                rounded={theme.radius.xl}
+              />
+              <View style={{ gap: 2 }}>
+                <Text
+                  style={[styles.username, { color: theme.colors.textDark }]}
+                >
+                  {user?.name}
+                </Text>
+                <Text
+                  style={[styles.publicText, { color: theme.colors.textLight }]}
+                >
+                  Công khai
+                </Text>
+              </View>
             </View>
-          )}
-          <View style={styles.media}>
-            <Text style={styles.addImageText}>Add to your post</Text>
+
+            <View style={styles.inputWrapper}>
+              <TextInput
+                multiline
+                value={body}
+                onChangeText={setBody}
+                placeholder="Bạn đang nghĩ gì?"
+                placeholderTextColor={theme.colors.textLight}
+                style={[styles.input, { color: theme.colors.text }]}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {file && (
+              <View
+                style={[
+                  styles.filePreview,
+                  { borderColor: theme.colors.gray, borderWidth: 1 },
+                ]}
+              >
+                {getFileType(file) === "video" ? (
+                  <VideoView
+                    player={player}
+                    style={{ flex: 1 }}
+                    nativeControls
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Image
+                    source={uriObj}
+                    contentFit="cover"
+                    style={{ flex: 1 }}
+                  />
+                )}
+                <Pressable
+                  style={styles.closeIcon}
+                  onPress={() => setFile(null)}
+                >
+                  <Icon name="delete" size={20} color="white" />
+                </Pressable>
+              </View>
+            )}
+          </ScrollView>
+          <View
+            style={[
+              styles.footer,
+              {
+                backgroundColor: theme.colors.background,
+                borderTopColor: theme.colors.gray,
+              },
+            ]}
+          >
             <View style={styles.mediaIcons}>
-              <TouchableOpacity onPress={() => onPick(true)}>
-                <Icon name="image" size={30} color={theme.colors.dark} />
+              <TouchableOpacity
+                onPress={() => onPick(true)}
+                style={styles.iconButton}
+              >
+                <Icon name="image" size={28} color={theme.colors.text} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => onPick(false)}>
-                <Icon name="video" size={30} color={theme.colors.dark} />
+              <TouchableOpacity
+                onPress={() => onPick(false)}
+                style={styles.iconButton}
+              >
+                <Icon name="video" size={28} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
+
+            <Button
+              title={isEdit ? "Cập nhật" : "Đăng"}
+              loading={loading}
+              onPress={onSubmit}
+              disabled={!body.trim() && !file}
+              buttonStyle={styles.postBtn}
+              hasShadow={false}
+            />
           </View>
-        </ScrollView>
-        <Button
-          title="Post"
-          buttonStyle={{ height: hp(6.2) }}
-          loading={loading}
-          hasShadow={false}
-          onPress={onSubmit}
-        />
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </ScreenWrapper>
   );
 };
 
-export default NewPost;
+(NewPost as any).whyDidYouRender = true;
+export default React.memo(NewPost);
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    marginBottom: 30,
-    paddingHorizontal: wp(4),
-    gap: 15,
-  },
-  title: {
-    fontSize: hp(2.5),
-    fontWeight: theme.fonts.semibold as any,
-    color: theme.colors.text,
-    textAlign: "center",
-  },
+  container: { flex: 1, paddingHorizontal: wp(4) },
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    marginTop: 10,
   },
   username: {
     fontSize: hp(2.2),
     fontWeight: theme.fonts.semibold as any,
-    color: theme.colors.text,
-  },
-  avatar: {
-    height: hp(6.5),
-    width: hp(6.5),
-    borderRadius: theme.radius.xl,
-    borderCurve: "continuous",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.1)",
   },
   publicText: {
     fontSize: hp(1.7),
-    fontWeight: theme.fonts.medium as any,
-    color: theme.colors.textLight,
   },
-  textEditor: {},
-  media: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderWidth: 1.5,
-    padding: 12,
-    paddingHorizontal: 18,
-    borderRadius: theme.radius.xl,
-    borderCurve: "continuous",
-    borderColor: theme.colors.gray,
-  },
-  mediaIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 15,
-  },
-  addImageText: {
-    fontSize: hp(1.9),
-    fontWeight: theme.fonts.semibold as any,
-    color: theme.colors.text,
-  },
-  imageIcon: {
-    borderRadius: theme.radius.md,
-  },
-  file: {
-    height: hp(30),
+  inputWrapper: { minHeight: hp(20) },
+  input: { fontSize: hp(2.2), color: theme.colors.text, paddingTop: 10 },
+  filePreview: {
+    height: hp(35),
     width: "100%",
     borderRadius: theme.radius.xl,
     overflow: "hidden",
-    borderCurve: "continuous",
+    position: "relative",
   },
-  video: {},
   closeIcon: {
     position: "absolute",
     top: 10,
     right: 10,
     padding: 7,
     borderRadius: 50,
-    backgroundColor: "rgba(255,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: wp(4),
+    paddingVertical: 12,
+    paddingBottom: hp(3.5),
+    backgroundColor: "white",
+    borderTopWidth: 0.5,
+    borderTopColor: theme.colors.gray,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 20,
+  },
+  mediaIcons: { flexDirection: "row", gap: 15 },
+  iconButton: { padding: 5 },
+  postBtn: { width: wp(25), height: hp(5.2) },
 });

@@ -4,20 +4,16 @@ import { Pressable, StyleSheet } from "react-native";
 import Icon from "../assets/icons"; // Đường dẫn đến file Icon trung tâm
 import { theme } from "../constants/theme";
 
-// 1. Định nghĩa kiểu dữ liệu cho Props
 interface BackButtonProps {
   size?: number;
-  router: Router; // Đối tượng router để thực hiện lệnh back()
+  router: Router;
 }
 
 const BackButton: React.FC<BackButtonProps> = ({ size = 26, router }) => {
   return (
     <Pressable
       onPress={() => router.back()}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && { opacity: 0.7 }, // Hiệu ứng khi nhấn
-      ]}
+      style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
     >
       <Icon
         name="arrowLeft"

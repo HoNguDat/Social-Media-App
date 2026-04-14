@@ -7,7 +7,7 @@ import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
 import { User } from "@/models/userModel";
-import { getUserImageSrc, uploadFile } from "@/services/imageService";
+import { getUserImageSrc, uploadFile } from "@/services/fileService";
 import { updateUser } from "@/services/userService";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -155,7 +155,7 @@ const EditProfile = () => {
     </ScreenWrapper>
   );
 };
-
+EditProfile.whydidYouRender = true;
 export default EditProfile;
 
 const styles = StyleSheet.create({

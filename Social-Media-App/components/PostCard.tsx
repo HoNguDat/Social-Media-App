@@ -1,10 +1,11 @@
 import Icon from "@/assets/icons";
 import { theme } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp, stripHtmlTags } from "@/helpers/common";
 import { PostLike } from "@/models/postLikes";
 import { Post } from "@/models/postModel";
 import { User } from "@/models/userModel";
-import { downloadFile, getSupabaseFileUrl } from "@/services/imageService";
+import { downloadFile, getSupabaseFileUrl } from "@/services/fileService";
 import {
   createPostLike,
   removePost,
@@ -14,10 +15,9 @@ import { Image } from "expo-image";
 import { Router } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
 import moment from "moment";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Dimensions,
   Modal,
   Pressable,
   Share,
@@ -26,8 +26,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import RenderHtml from "react-native-render-html";
 import Avatar from "./Avatar";
+import { VideoRender } from "./VideoRender";
 interface PostCardProps {
   item: Post;
   currentUser: User;
@@ -54,16 +54,8 @@ const VideoElement = ({ source }: { source: { uri: string } }) => {
 };
 
 const textStyle = {
-  color: theme.colors.dark,
+  color: theme.colors.textLight,
   fontSize: hp(1.75),
-};
-
-const tagsStyles = {
-  div: textStyle,
-  p: textStyle,
-  ol: textStyle,
-  h1: { color: theme.colors.dark },
-  h4: { color: theme.colors.dark },
 };
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -74,42 +66,52 @@ const PostCard: React.FC<PostCardProps> = ({
   showMoreIcon = true,
   onDelete,
 }) => {
-  const shadowStyles = {
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 1,
-  };
   const [showOptions, setShowOptions] = useState(false);
   const [likes, setLikes] = useState<PostLike[]>([]);
   const [loadingLike, setLoadingLike] = useState(false);
+  const { theme, isDarkMode } = useTheme();
+  const tagsStyles = useMemo(
+    () => ({
+      div: { color: theme.colors.text, fontSize: hp(1.75) },
+      p: { color: theme.colors.text, fontSize: hp(1.75) },
+      ol: { color: theme.colors.text, fontSize: hp(1.75) },
+      h1: { color: theme.colors.textDark },
+      h4: { color: theme.colors.textDark },
+    }),
+    [theme],
+  );
+  const shadowStyles = {
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDarkMode ? 0 : 0.06,
+    shadowRadius: 6,
+    elevation: 1,
+  };
   useEffect(() => {
     setLikes(item?.postLikes || []);
   }, [item?.postLikes]);
 
-  const liked = likes.some((like) => like.userId == currentUser.id);
-  const created_at = moment(item.created_at).format("MMM D");
-  const videoSource =
-    item?.file &&
-    typeof item.file === "string" &&
-    item.file.includes("postVideos")
-      ? { uri: item.file }
-      : null;
+  const liked = useMemo(
+    () => likes.some((like) => like.userId == currentUser.id),
+    [likes, currentUser.id],
+  );
 
-  // --- CẢI TIẾN: MEMOIZED FUNCTIONS ---
+  const created_at = useMemo(
+    () => moment(item.created_at).format("MMM D"),
+    [item.created_at],
+  );
+
   const openPostDetails = useCallback(() => {
     if (!showMoreIcon) return;
     router.push({ pathname: "/postDetails", params: { postId: item?.id } });
   }, [showMoreIcon, item?.id]);
 
-  const onLike = async () => {
-    if (loadingLike) return; // Nếu đang xử lý thì không cho bấm tiếp
+  const onLike = useCallback(async () => {
+    if (loadingLike) return;
 
     setLoadingLike(true);
-    const oldLikes = [...likes]; // Lưu lại phòng trường hợp lỗi
+    const oldLikes = [...likes];
 
     if (liked) {
-      // Giả định xóa like thành công để UI đổi màu ngay
       setLikes((prev) =>
         prev.filter((l) => String(l.userId) !== String(currentUser.id)),
       );
@@ -134,8 +136,8 @@ const PostCard: React.FC<PostCardProps> = ({
       }
     }
     setLoadingLike(false);
-  };
-  const onShare = async () => {
+  }, [liked, likes, currentUser.id, item.id, loadingLike]);
+  const onShare = useCallback(async () => {
     const content: { message: string; url?: string } = {
       message: stripHtmlTags(item?.body || "Check out this post!"),
     };
@@ -147,8 +149,8 @@ const PostCard: React.FC<PostCardProps> = ({
       }
     }
     Share.share(content);
-  };
-  const handleDeletePost = async () => {
+  }, [item?.body, item?.file]);
+  const handleDeletePost = useCallback(async () => {
     Alert.alert("Xác nhận", "Bạn có chắc chắn muốn xóa bài viết này không?", [
       {
         text: "Hủy",
@@ -173,12 +175,18 @@ const PostCard: React.FC<PostCardProps> = ({
         },
       },
     ]);
-  };
+  }, [item.id, onDelete, showMoreIcon, router]);
   return (
-    <View style={[styles.container, hasShadow && shadowStyles]}>
-      {/* BỌC TOÀN BỘ PHẦN NỘI DUNG VÀO PRESSABLE 
-          để khi ấn vào vùng trắng sẽ vào Details 
-      */}
+    <View
+      style={[
+        styles.container,
+        hasShadow && shadowStyles,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.gray,
+        },
+      ]}
+    >
       <Pressable onPress={openPostDetails} style={styles.mainClickableArea}>
         <View style={styles.header}>
           <View style={styles.userInfo}>
@@ -192,16 +200,20 @@ const PostCard: React.FC<PostCardProps> = ({
               rounded={theme.radius.md}
             />
             <View style={{ gap: 2 }}>
-              <Text style={styles.userName}>{item.user?.name}</Text>
-              <Text style={styles.postTime}>{created_at}</Text>
+              <Text style={[styles.userName, { color: theme.colors.textDark }]}>
+                {item.user?.name}
+              </Text>
+              <Text
+                style={[styles.postTime, { color: theme.colors.textLight }]}
+              >
+                {created_at}
+              </Text>
             </View>
           </View>
-
-          {/* NÚT BA CHẤM - NGĂN CHẶN BUBBLING SỰ KIỆN */}
           {showMoreIcon && (
             <TouchableOpacity
               onPress={(e) => {
-                e.stopPropagation(); // Ngăn không cho sự kiện nhấn lan ra vùng trắng
+                e.stopPropagation();
                 setShowOptions(true);
               }}
               style={styles.moreIcon}
@@ -219,23 +231,29 @@ const PostCard: React.FC<PostCardProps> = ({
         <View style={styles.content}>
           <View style={styles.postBody}>
             {item?.body && (
-              <RenderHtml
-                contentWidth={Dimensions.get("window").width}
-                source={{ html: item?.body }}
-                tagsStyles={tagsStyles}
-              />
+              <Text
+                style={[styles.contentBodyText, { color: theme.colors.text }]}
+              >
+                {item.body}
+              </Text>
             )}
           </View>
-          {typeof item?.file === "string" &&
-            item.file.includes("postImages") && (
-              <Image
-                source={{ uri: item.file }}
-                transition={100}
-                style={styles.postMedia}
-                contentFit="cover"
-              />
-            )}
-          {/* VideoElement giữ nguyên */}
+          {typeof item?.file === "string" && (
+            <View style={styles.postMedia}>
+              {item.file.includes("postVideos") ? (
+                /* Render Video */
+                <VideoRender file={item.file} style={styles.postMedia} />
+              ) : item.file.includes("postImages") ? (
+                /* Render Ảnh */
+                <Image
+                  source={{ uri: item.file }}
+                  transition={100}
+                  style={styles.postMedia}
+                  contentFit="cover"
+                />
+              ) : null}
+            </View>
+          )}
         </View>
       </Pressable>
       <View style={styles.footer}>
@@ -244,23 +262,25 @@ const PostCard: React.FC<PostCardProps> = ({
             <Icon
               name="heart"
               size={24}
-              color={liked ? theme.colors.rose : theme.colors.textDark}
+              color={liked ? theme.colors.rose : theme.colors.textLight}
               fill={liked ? theme.colors.rose : "transparent"}
             />
           </TouchableOpacity>
-          <Text style={styles.count}>{likes?.length}</Text>
+          <Text style={[styles.count, { color: theme.colors.text }]}>
+            {likes?.length}
+          </Text>
         </View>
         <View style={styles.footerButton}>
           <TouchableOpacity onPress={openPostDetails}>
-            <Icon name="comment" size={24} color={theme.colors.textDark} />
+            <Icon name="comment" size={24} color={theme.colors.textLight} />
           </TouchableOpacity>
-          <Text style={styles.count}>
+          <Text style={[styles.count, { color: theme.colors.text }]}>
             {(item?.comments?.[0] as any)?.count ?? item?.comments?.length ?? 0}
           </Text>
         </View>
         <View style={styles.footerButton}>
           <TouchableOpacity onPress={onShare}>
-            <Icon name="share" size={24} color={theme.colors.textDark} />
+            <Icon name="share" size={24} color={theme.colors.textLight} />
           </TouchableOpacity>
         </View>
       </View>
@@ -274,23 +294,56 @@ const PostCard: React.FC<PostCardProps> = ({
           style={styles.modalOverlay}
           onPress={() => setShowOptions(false)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHandle} />
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.surface },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHandle,
+                { backgroundColor: theme.colors.gray },
+              ]}
+            />
             {currentUser.id === item.userId ? (
               <>
                 <TouchableOpacity
-                  style={styles.modalOption}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => {
                     setShowOptions(false);
-                    // logic edit bài viết
+                    router.push({
+                      pathname: "/newPost",
+                      params: {
+                        id: item.id,
+                        body: item.body,
+                        file:
+                          typeof item.file === "object"
+                            ? JSON.stringify(item.file)
+                            : item.file,
+                      },
+                    });
                   }}
                 >
                   <Icon name="edit" size={20} color={theme.colors.text} />
-                  <Text style={styles.modalOptionText}>Chỉnh sửa bài viết</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: theme.colors.textDark },
+                    ]}
+                  >
+                    Chỉnh sửa bài viết
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.modalOption]}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => {
                     setShowOptions(false);
                     handleDeletePost();
@@ -300,7 +353,7 @@ const PostCard: React.FC<PostCardProps> = ({
                   <Text
                     style={[
                       styles.modalOptionText,
-                      { color: theme.colors.rose },
+                      { color: theme.colors.textDark },
                     ]}
                   >
                     Xóa bài viết
@@ -310,14 +363,27 @@ const PostCard: React.FC<PostCardProps> = ({
             ) : (
               <>
                 <TouchableOpacity
-                  style={styles.modalOption}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => setShowOptions(false)}
                 >
                   <Icon name="circlePlus" size={20} color={theme.colors.text} />
-                  <Text style={styles.modalOptionText}>Quan tâm</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: theme.colors.textDark },
+                    ]}
+                  >
+                    Quan tâm
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.modalOption}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => setShowOptions(false)}
                 >
                   <Icon
@@ -325,21 +391,48 @@ const PostCard: React.FC<PostCardProps> = ({
                     size={20}
                     color={theme.colors.text}
                   />
-                  <Text style={styles.modalOptionText}>Không quan tâm</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: theme.colors.textDark },
+                    ]}
+                  >
+                    Không quan tâm
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.modalOption}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => setShowOptions(false)}
                 >
                   <Icon name="cancel" size={20} color={theme.colors.text} />
-                  <Text style={styles.modalOptionText}>Ẩn bài viết</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: theme.colors.textDark },
+                    ]}
+                  >
+                    Ẩn bài viết
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.modalOption}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.gray },
+                  ]}
                   onPress={() => setShowOptions(false)}
                 >
                   <Icon name="share" size={20} color={theme.colors.text} />
-                  <Text style={styles.modalOptionText}>Sao chép liên kết</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      { color: theme.colors.textDark },
+                    ]}
+                  >
+                    Sao chép liên kết
+                  </Text>
                 </TouchableOpacity>
               </>
             )}
@@ -349,8 +442,13 @@ const PostCard: React.FC<PostCardProps> = ({
     </View>
   );
 };
+const MemoizedPostCard = React.memo(PostCard);
 
-export default PostCard;
+if (process.env.NODE_ENV === "development") {
+  (MemoizedPostCard as any).whyDidYouRender = true;
+}
+
+export default MemoizedPostCard;
 const styles = StyleSheet.create({
   container: {
     gap: 10,
@@ -359,9 +457,7 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     padding: 10,
     paddingVertical: 12,
-    backgroundColor: "white",
     borderWidth: 0.5,
-    borderColor: theme.colors.gray,
     shadowColor: "#000",
   },
   header: {
@@ -375,16 +471,18 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: hp(1.7),
-    color: theme.colors.textDark,
-    fontWeight: theme.fonts.medium as any,
+    fontWeight: theme.fonts.medium,
   },
   postTime: {
     fontSize: hp(1.7),
-    color: theme.colors.textLight,
-    fontWeight: theme.fonts.medium as any,
+    fontWeight: theme.fonts.medium,
   },
   content: {
     gap: 10,
+  },
+  contentBodyText: {
+    fontSize: hp(1.75),
+    lineHeight: hp(2.4),
   },
   postMedia: {
     height: hp(40),
@@ -412,7 +510,6 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   count: {
-    color: theme.colors.text,
     fontSize: hp(1.8),
   },
   mainClickableArea: {
@@ -427,7 +524,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "white",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 20,
@@ -453,6 +549,5 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: hp(1.8),
     fontWeight: "500",
-    color: theme.colors.textDark,
   },
 });

@@ -1,14 +1,15 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
 import { theme } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp } from "@/helpers/common";
 import { User } from "@/models/userModel";
 import { router, usePathname } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-    SharedValue,
-    useAnimatedStyle,
+  SharedValue,
+  useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 interface BottomTabProps {
@@ -17,6 +18,7 @@ interface BottomTabProps {
 }
 
 const BottomTab = ({ translateY, user }: BottomTabProps) => {
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const isHome = pathname === "/home";
@@ -31,7 +33,11 @@ const BottomTab = ({ translateY, user }: BottomTabProps) => {
       style={[
         styles.bottomTab,
         animatedBarStyle,
-        { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 },
+        {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.gray,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
+        },
       ]}
     >
       <Pressable onPress={() => router.push("/home")} style={styles.tabItem}>
@@ -89,13 +95,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     width: "100%",
-    backgroundColor: "white",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 0.5,
-    borderTopColor: theme.colors.gray,
+    // Đổ bóng (Shadow) trong Dark Mode nên mờ hơn hoặc tắt đi
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,

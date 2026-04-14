@@ -1,6 +1,7 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
 import { theme } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
 import { User } from "@/models/userModel";
 import { DrawerActions } from "@react-navigation/native";
@@ -14,36 +15,43 @@ interface HomeHeaderProps {
 
 const HomeHeader = ({ user }: HomeHeaderProps) => {
   const navigation = useNavigation();
+  const { theme } = useTheme();
   return (
     <View style={styles.header}>
       <View style={styles.leftHeader}>
-        {/* Nút ba gạch Hamburger */}
         <Pressable
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} // Lệnh mở Drawer
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           style={styles.hamburgerBtn}
         >
           <Icon
-            name={"listView"} // Bạn có thể đổi sang icon ba gạch chuẩn nếu có trong assets
+            name={"listView"}
             size={hp(3)}
             strokeWidth={2}
             color={theme.colors.text}
           />
         </Pressable>
 
-        <Text style={styles.title}>LinkUp</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>LinkUp</Text>
       </View>
       <View style={styles.icon}>
-        <Pressable onPress={() => router.push("/notification")}>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/newPost",
+              params: { id: null, body: null, file: null },
+            })
+          }
+        >
           <Icon
-            name={"heart"}
+            name={"plus"}
             size={hp(3.2)}
             strokeWidth={2}
             color={theme.colors.text}
           />
         </Pressable>
-        <Pressable onPress={() => router.push("/newPost")}>
+        <Pressable onPress={() => router.push("/searchFriend")}>
           <Icon
-            name={"plus"}
+            name={"search"}
             size={hp(3.2)}
             strokeWidth={2}
             color={theme.colors.text}
@@ -85,7 +93,6 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   title: {
-    color: theme.colors.text,
     fontSize: hp(3.2),
     fontWeight: theme.fonts.bold as any,
   },

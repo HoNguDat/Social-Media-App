@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import React from "react";
 import { ImageStyle, StyleProp, StyleSheet } from "react-native";
 
-import { getUserImageSrc } from "@/services/imageService";
+import { getUserImageSrc } from "@/services/fileService";
 import { theme } from "../constants/theme";
 import { hp } from "../helpers/common";
 

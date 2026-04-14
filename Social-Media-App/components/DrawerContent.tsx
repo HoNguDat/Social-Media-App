@@ -1,98 +1,179 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
-import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
 import {
-    DrawerContentScrollView,
-    DrawerItemList,
+  DrawerContentScrollView,
+  DrawerItemList,
 } from "@react-navigation/drawer";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 const DrawerContent = (props: any) => {
   const { user } = useAuth();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
 
-  return (
-    <View style={{ flex: 1 }}>
-      {/* 1. Phần Header bên trong Drawer (Avatar & Tên) */}
-      <View style={styles.drawerHeader}>
-        <Avatar
-          size={hp(7)}
-          uri={
-            typeof user?.image === "string"
-              ? user.image
-              : user?.image?.uri || ""
-          }
-          rounded={theme.radius.md}
+  const RadioButton = ({ selected }: { selected: boolean }) => (
+    <View
+      style={[
+        styles.radioOuter,
+        {
+          borderColor: selected ? theme.colors.primary : theme.colors.textLight,
+        },
+      ]}
+    >
+      {selected && (
+        <View
+          style={[styles.radioInner, { backgroundColor: theme.colors.primary }]}
         />
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user?.name || "User Name"}</Text>
-          <Text style={styles.userEmail}>
-            {user?.email || "email@example.com"}
-          </Text>
+      )}
+    </View>
+  );
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={styles.headerContainer}>
+        <View
+          style={[
+            styles.drawerHeader,
+            {
+              borderColor: theme.colors.gray,
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.md,
+            },
+          ]}
+        >
+          <Avatar
+            size={hp(7)}
+            uri={
+              typeof user?.image === "string"
+                ? user.image
+                : user?.image?.uri || ""
+            }
+            rounded={theme.radius.md}
+          />
+          <View style={styles.userInfo}>
+            <Text style={[styles.userName, { color: theme.colors.textDark }]}>
+              {user?.name || "User Name"}
+            </Text>
+            <Text style={[styles.userEmail, { color: theme.colors.textLight }]}>
+              {user?.email || "email@example.com"}
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* 2. Danh sách các trang mặc định (Home, Profile...) */}
-      <DrawerContentScrollView
-        {...props}
-        contentContainerStyle={{ paddingTop: 0 }}
-      >
+      <DrawerContentScrollView {...props}>
         <DrawerItemList {...props} />
-      </DrawerContentScrollView>
 
-      {/* 3. Phần Bottom bên trong Drawer (Nút Setting) */}
-      <View style={styles.drawerBottom}>
-        <Pressable
-          style={styles.settingButton}
-          onPress={() => {
-            props.navigation.closeDrawer(); // Đóng menu trước
-            //router.push("/settings"); // Chuyển sang trang setting
-          }}
-        >
+        {/* PHẦN CHỌN CHẾ ĐỘ SÁNG TỐI */}
+        <View style={styles.themeSection}>
+          <Text
+            style={[styles.sectionTitle, { color: theme.colors.textLight }]}
+          >
+            Giao diện
+          </Text>
+          <Pressable
+            style={styles.themeOption}
+            onPress={() => isDarkMode && toggleTheme()}
+          >
+            <Text style={[styles.themeText, { color: theme.colors.text }]}>
+              Chế độ sáng
+            </Text>
+            <RadioButton selected={!isDarkMode} />
+          </Pressable>
+          <Pressable
+            style={styles.themeOption}
+            onPress={() => !isDarkMode && toggleTheme()}
+          >
+            <Text style={[styles.themeText, { color: theme.colors.text }]}>
+              Chế độ tối
+            </Text>
+            <RadioButton selected={isDarkMode} />
+          </Pressable>
+        </View>
+      </DrawerContentScrollView>
+      <View
+        style={[styles.drawerBottom, { borderTopColor: theme.colors.gray }]}
+      >
+        <Pressable style={styles.settingButton}>
           <Icon
             name="threeDotsHorizontal"
             size={hp(2.5)}
             color={theme.colors.textLight}
           />
-          <Text style={styles.settingText}>Cài đặt & quyền riêng tư</Text>
+          <Text style={[styles.settingText, { color: theme.colors.text }]}>
+            Cài đặt & quyền riêng tư
+          </Text>
         </Pressable>
       </View>
     </View>
   );
 };
 
-export default DrawerContent;
-
 const styles = StyleSheet.create({
+  headerContainer: {
+    paddingHorizontal: wp(5),
+    marginTop: hp(6),
+    paddingTop: hp(2),
+  },
   drawerHeader: {
-    padding: wp(5),
-    paddingTop: hp(6), // Đẩy xuống dưới thanh trạng thái
-    backgroundColor: "white",
-    borderBottomWidth: 0.5,
-    borderBottomColor: theme.colors.gray,
+    padding: wp(4),
     flexDirection: "row",
     alignItems: "center",
     gap: 15,
   },
-  userInfo: {
-    flex: 1,
+  userInfo: { flex: 1 },
+  userName: { fontSize: hp(2.2), fontWeight: "700" },
+  userEmail: { fontSize: hp(1.6) },
+
+  themeSection: {
+    paddingHorizontal: wp(4),
+    marginTop: hp(2),
   },
-  userName: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold as any,
-    color: theme.colors.text,
-  },
-  userEmail: {
+  sectionTitle: {
     fontSize: hp(1.6),
-    color: theme.colors.textLight,
+    fontWeight: "600",
+    marginBottom: hp(1),
+    marginLeft: wp(2),
+    textTransform: "uppercase",
   },
+  themeOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: hp(1.5),
+  },
+  radioOuter: {
+    width: hp(2.4),
+    height: hp(2.4),
+    borderRadius: hp(1.2),
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioInner: {
+    width: hp(1.2),
+    height: hp(1.2),
+    borderRadius: hp(0.6),
+  },
+  iconCircle: {
+    width: hp(4),
+    height: hp(4),
+    borderRadius: hp(2),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  themeText: {
+    flex: 1,
+    fontSize: hp(1.8),
+    fontWeight: "500",
+  },
+
   drawerBottom: {
     padding: wp(5),
     borderTopWidth: 0.5,
-    borderTopColor: theme.colors.gray,
-    marginBottom: hp(2), // Cách viền dưới một chút
+    marginBottom: hp(2),
   },
   settingButton: {
     flexDirection: "row",
@@ -100,9 +181,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
   },
-  settingText: {
-    fontSize: hp(1.8),
-    color: theme.colors.text,
-    fontWeight: theme.fonts.medium as any,
-  },
+  settingText: { fontSize: hp(1.8) },
 });
+
+export default DrawerContent;

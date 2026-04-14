@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Comment } from "@/models/comment";
-import { Post } from "@/models/postModel";
-import { uploadFile, uploadVideo } from "./imageService";
+import { deleteFile, uploadFile, uploadVideo } from "./fileService";
 
 type ServiceResponse = {
   success: boolean;
@@ -101,20 +100,30 @@ export const removePostLike = async (postId: number, userId: string) => {
 };
 
 export const createOrUpdatePost = async (
-  post: Post,
+  post: any,
 ): Promise<ServiceResponse> => {
   try {
+    if (post.id) {
+      const { data: oldPost } = await supabase
+        .from("posts")
+        .select("file")
+        .eq("id", post.id)
+        .single();
+
+      const isFileChanged = post.file !== oldPost?.file;
+      if (oldPost?.file && isFileChanged) {
+        await deleteFile(oldPost.file);
+      }
+    }
+
     if (post.file && typeof post.file === "object") {
       const isImage = post.file.type === "image";
       const folderName = isImage ? "postImages" : "postVideos";
 
-      let fileResult;
+      let fileResult = isImage
+        ? await uploadFile(folderName, post.file, true)
+        : await uploadVideo(folderName, post.file);
 
-      if (isImage) {
-        fileResult = await uploadFile(folderName, post.file, true);
-      } else {
-        fileResult = await uploadVideo(folderName, post.file);
-      }
       if (fileResult.success) {
         post.file = fileResult.publicUrl;
       } else {
@@ -128,14 +137,10 @@ export const createOrUpdatePost = async (
       .select()
       .single();
 
-    if (error) {
-      console.log("createPost error:", error);
-      return { success: false, msg: "Could not create your post" };
-    }
+    if (error) return { success: false, msg: "Could not save post" };
     return { success: true, data: data };
-  } catch (error) {
-    console.log("createPost error:", error);
-    return { success: false, msg: "Could not create your post" };
+  } catch (error: any) {
+    return { success: false, msg: error.message };
   }
 };
 export const createComment = async (comment: Comment) => {
@@ -181,18 +186,31 @@ export const removeComment = async (commentId: number) => {
 };
 export const removePost = async (postId: number) => {
   try {
-    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    // 1. Lấy thông tin post trước khi xóa để biết nó có file không
+    const { data: post, error: fetchError } = await supabase
+      .from("posts")
+      .select("file")
+      .eq("id", postId)
+      .single();
 
-    if (error) {
-      console.log("Remove post error ", error);
-      return { success: false, msg: error.message };
+    if (fetchError) throw fetchError;
+
+    const { error: deleteError } = await supabase
+      .from("posts")
+      .delete()
+      .eq("id", postId);
+
+    if (deleteError) {
+      return { success: false, msg: deleteError.message };
     }
+
+    if (post && post.file) {
+      await deleteFile(post.file);
+    }
+
     return { success: true, data: { postId } };
-  } catch (error) {
-    console.log("Remove post error", error);
-    return {
-      success: false,
-      msg: "An error occurred while remove post ",
-    };
+  } catch (error: any) {
+    console.log("removePost error: ", error);
+    return { success: false, msg: error.message };
   }
 };

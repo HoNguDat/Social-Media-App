@@ -133,6 +133,7 @@ const Profile = () => {
   );
 };
 
+Profile.whydidYouRender = true; // Kích hoạt WDYR cho component này
 export default Profile;
 
 const styles = StyleSheet.create({

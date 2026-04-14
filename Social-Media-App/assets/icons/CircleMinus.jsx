@@ -8,6 +8,7 @@ const CircleMinus = (props) => (
     height={24}
     fill="none"
     stroke="#141B34"
+    color="#000000"
     strokeWidth="1.5"
     strokeLinecap="round"
     strokeLinejoin="round"

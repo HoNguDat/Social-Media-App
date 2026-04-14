@@ -1,3 +1,4 @@
+import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -17,7 +18,7 @@ const Header = ({
   mb = 10,
 }: HeaderProps) => {
   const router = useRouter();
-
+  const { theme } = useTheme();
   return (
     <View style={[styles.container, { marginBottom: mb }]}>
       {showBackButton && (
@@ -25,7 +26,9 @@ const Header = ({
           <BackButton router={router} />
         </View>
       )}
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: theme.colors.textDark }]}>
+        {title}
+      </Text>
     </View>
   );
 };
@@ -43,7 +46,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: hp(2.7),
     fontWeight: theme.fonts.semibold as any,
-    color: theme.colors.textDark,
   },
   showBackButton: {
     position: "absolute",

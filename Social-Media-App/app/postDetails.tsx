@@ -7,6 +7,7 @@ import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
 import { supabase } from "@/lib/supabase";
 import { Comment } from "@/models/comment";
@@ -42,6 +43,7 @@ const PostDetails = () => {
   const commentRef = useRef("");
   const [loading, setLoading] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const { theme, isDarkMode } = useTheme();
   useEffect(() => {
     const commentChannel = supabase
       .channel("comments")
@@ -56,9 +58,29 @@ const PostDetails = () => {
         handleNewComment,
       )
       .subscribe();
+    const postDeleteChannel = supabase
+      .channel(`post-delete-${postId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "posts",
+          filter: `id=eq.${postId}`,
+        },
+        (payload) => {
+          Alert.alert(
+            "Thông báo",
+            "Bài viết này đã bị xóa hoặc không còn tồn tại.",
+            [{ text: "OK", onPress: () => router.replace("/home") }],
+          );
+        },
+      )
+      .subscribe();
     getPostDetails();
     return () => {
       supabase.removeChannel(commentChannel);
+      supabase.removeChannel(postDeleteChannel);
       setPosts(null);
       setStartLoading(true);
     };
@@ -87,6 +109,10 @@ const PostDetails = () => {
       if (res.success) {
         console.log("Post details: " + res.data);
         setPosts(res.data);
+      } else {
+        Alert.alert("Lỗi", "Bài viết này không tồn tại.", [
+          { text: "OK", onPress: () => router.replace("/home") },
+        ]);
       }
       setStartLoading(false);
     }
@@ -151,13 +177,18 @@ const PostDetails = () => {
     );
   }
   return (
-    <ScreenWrapper bg="white">
+    <ScreenWrapper bg={theme.colors.background}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
-        <View style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: theme.colors.background },
+          ]}
+        >
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.list, { paddingBottom: 30 }]}
@@ -202,7 +233,15 @@ const PostDetails = () => {
               )}
             </View>
           </ScrollView>
-          <View style={styles.stickyInputContainer}>
+          <View
+            style={[
+              styles.stickyInputContainer,
+              {
+                backgroundColor: theme.colors.background,
+                borderTopColor: theme.colors.gray,
+              },
+            ]}
+          >
             <Input
               inputRef={inputRef}
               placeholder="Type comment..."
@@ -212,7 +251,7 @@ const PostDetails = () => {
                 flex: 1,
                 height: hp(6.2),
                 borderRadius: theme.radius.xl,
-                backgroundColor: "white",
+                backgroundColor: isDarkMode ? theme.colors.surface : "white",
                 borderWidth: 0.5,
                 borderColor: theme.colors.gray,
               }}
@@ -238,8 +277,6 @@ export default PostDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
-
     overflow: "hidden",
   },
   stickyInputContainer: {
@@ -249,23 +286,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(4),
     paddingVertical: hp(1.5),
     borderTopWidth: 0.5,
-    borderTopColor: theme.colors.gray,
-    backgroundColor: "white",
-    // Xử lý khoảng cách cho iPhone đời mới (Safe Area)
-    marginBottom: Platform.OS === "ios" ? hp(1) : 0,
-  },
-  inputStyle: {
-    flex: 1,
-    height: hp(6.2),
-    borderRadius: theme.radius.xl,
-    backgroundColor: "white",
-    borderWidth: 0.5,
-    borderColor: theme.colors.gray,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    marginBottom: Platform.OS === "ios" ? hp(2) : 0,
   },
   list: {
     paddingHorizontal: wp(4),
@@ -287,8 +308,6 @@ const styles = StyleSheet.create({
   },
   notFound: {
     fontSize: hp(2.5),
-    color: theme.colors.text,
-    fontWeight: theme.fonts.medium as any,
   },
   loading: {
     height: hp(5.8),

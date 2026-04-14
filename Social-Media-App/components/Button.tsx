@@ -17,6 +17,7 @@ interface ButtonProps {
   onPress?: () => void;
   loading?: boolean;
   hasShadow?: boolean;
+  disabled?: boolean;
 }
 
 const Button: React.FC<ButtonProps> = ({
