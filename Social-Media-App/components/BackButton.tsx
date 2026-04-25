@@ -1,8 +1,8 @@
-import { Router } from "expo-router"; // Hoặc kiểu dữ liệu từ thư viện navigation bạn dùng
+import { useTheme } from "@/contexts/ThemeContext";
+import { Router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
-import Icon from "../assets/icons"; // Đường dẫn đến file Icon trung tâm
-import { theme } from "../constants/theme";
+import Icon from "../assets/icons";
 
 interface BackButtonProps {
   size?: number;
@@ -10,10 +10,26 @@ interface BackButtonProps {
 }
 
 const BackButton: React.FC<BackButtonProps> = ({ size = 26, router }) => {
+  const { theme, isDarkMode } = useTheme();
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/drawer/home");
+    }
+  };
   return (
     <Pressable
-      onPress={() => router.back()}
-      style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}
+      onPress={handleBack}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor: isDarkMode
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(0,0,0,0.07)",
+        },
+        pressed && { opacity: 0.7 },
+      ]}
     >
       <Icon
         name="arrowLeft"
@@ -31,7 +47,6 @@ const styles = StyleSheet.create({
   button: {
     alignSelf: "flex-start",
     padding: 5,
-    borderRadius: theme.radius.sm,
-    backgroundColor: "rgba(0,0,0,0.07)",
+    borderRadius: 10,
   },
 });

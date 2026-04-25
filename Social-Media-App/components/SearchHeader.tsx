@@ -58,7 +58,7 @@ const SearchHeader = ({
 
         {value.length > 0 && (
           <TouchableOpacity onPress={onClear} style={styles.clearButton}>
-            <Icon name="delete" size={18} color={theme.colors.textLight} />
+            <Icon name="cancel" size={18} color={theme.colors.textLight} />
           </TouchableOpacity>
         )}
       </View>

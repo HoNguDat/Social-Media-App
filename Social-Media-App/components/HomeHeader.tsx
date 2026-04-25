@@ -1,5 +1,4 @@
 import Icon from "@/assets/icons";
-import Avatar from "@/components/Avatar";
 import { theme } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
@@ -16,13 +15,13 @@ interface HomeHeaderProps {
 const HomeHeader = ({ user }: HomeHeaderProps) => {
   const navigation = useNavigation();
   const { theme } = useTheme();
+  const handleOpenDrawer = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+  };
   return (
     <View style={styles.header}>
       <View style={styles.leftHeader}>
-        <Pressable
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-          style={styles.hamburgerBtn}
-        >
+        <Pressable onPress={handleOpenDrawer} style={styles.hamburgerBtn}>
           <Icon
             name={"listView"}
             size={hp(3)}
@@ -57,16 +56,12 @@ const HomeHeader = ({ user }: HomeHeaderProps) => {
             color={theme.colors.text}
           />
         </Pressable>
-        <Pressable onPress={() => router.push("/profile")}>
-          <Avatar
-            size={hp(4.3)}
-            uri={
-              typeof user?.image === "string"
-                ? user.image
-                : user?.image?.uri || ""
-            }
-            rounded={theme.radius.sm}
-            style={{ borderWidth: 2 }}
+        <Pressable>
+          <Icon
+            name={"messenger"}
+            size={hp(3.2)}
+            strokeWidth={2}
+            color={theme.colors.text}
           />
         </Pressable>
       </View>

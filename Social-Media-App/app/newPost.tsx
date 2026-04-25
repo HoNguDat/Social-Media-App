@@ -17,8 +17,6 @@ import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -157,118 +155,104 @@ const NewPost = () => {
 
   return (
     <ScreenWrapper bg={theme.colors.background}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <View style={styles.container}>
-          <Header title={isEdit ? "Chỉnh sửa bài viết" : "Bài viết mới"} />
+      <View style={styles.container}>
+        <Header title={isEdit ? "Chỉnh sửa bài viết" : "Bài viết mới"} />
 
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ gap: 15 }}
-          >
-            <View style={styles.header}>
-              <Avatar
-                uri={
-                  typeof user?.image === "string"
-                    ? user.image
-                    : user?.image?.uri || ""
-                }
-                size={hp(6.5)}
-                rounded={theme.radius.xl}
-              />
-              <View style={{ gap: 2 }}>
-                <Text
-                  style={[styles.username, { color: theme.colors.textDark }]}
-                >
-                  {user?.name}
-                </Text>
-                <Text
-                  style={[styles.publicText, { color: theme.colors.textLight }]}
-                >
-                  Công khai
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <TextInput
-                multiline
-                value={body}
-                onChangeText={setBody}
-                placeholder="Bạn đang nghĩ gì?"
-                placeholderTextColor={theme.colors.textLight}
-                style={[styles.input, { color: theme.colors.text }]}
-                textAlignVertical="top"
-              />
-            </View>
-
-            {file && (
-              <View
-                style={[
-                  styles.filePreview,
-                  { borderColor: theme.colors.gray, borderWidth: 1 },
-                ]}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ gap: 15 }}
+        >
+          <View style={styles.header}>
+            <Avatar
+              uri={
+                typeof user?.image === "string"
+                  ? user.image
+                  : user?.image?.uri || ""
+              }
+              size={hp(6.5)}
+              rounded={theme.radius.xl}
+            />
+            <View style={{ gap: 2 }}>
+              <Text style={[styles.username, { color: theme.colors.textDark }]}>
+                {user?.name}
+              </Text>
+              <Text
+                style={[styles.publicText, { color: theme.colors.textLight }]}
               >
-                {getFileType(file) === "video" ? (
-                  <VideoView
-                    player={player}
-                    style={{ flex: 1 }}
-                    nativeControls
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Image
-                    source={uriObj}
-                    contentFit="cover"
-                    style={{ flex: 1 }}
-                  />
-                )}
-                <Pressable
-                  style={styles.closeIcon}
-                  onPress={() => setFile(null)}
-                >
-                  <Icon name="delete" size={20} color="white" />
-                </Pressable>
-              </View>
-            )}
-          </ScrollView>
-          <View
-            style={[
-              styles.footer,
-              {
-                backgroundColor: theme.colors.background,
-                borderTopColor: theme.colors.gray,
-              },
-            ]}
-          >
-            <View style={styles.mediaIcons}>
-              <TouchableOpacity
-                onPress={() => onPick(true)}
-                style={styles.iconButton}
-              >
-                <Icon name="image" size={28} color={theme.colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => onPick(false)}
-                style={styles.iconButton}
-              >
-                <Icon name="video" size={28} color={theme.colors.text} />
-              </TouchableOpacity>
+                Công khai
+              </Text>
             </View>
+          </View>
 
-            <Button
-              title={isEdit ? "Cập nhật" : "Đăng"}
-              loading={loading}
-              onPress={onSubmit}
-              disabled={!body.trim() && !file}
-              buttonStyle={styles.postBtn}
-              hasShadow={false}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              multiline
+              value={body}
+              onChangeText={setBody}
+              placeholder="Bạn đang nghĩ gì?"
+              placeholderTextColor={theme.colors.textLight}
+              style={[styles.input, { color: theme.colors.text }]}
+              textAlignVertical="top"
             />
           </View>
+
+          {file && (
+            <View
+              style={[
+                styles.filePreview,
+                { borderColor: theme.colors.gray, borderWidth: 1 },
+              ]}
+            >
+              {getFileType(file) === "video" ? (
+                <VideoView
+                  player={player}
+                  style={{ flex: 1 }}
+                  nativeControls
+                  contentFit="cover"
+                />
+              ) : (
+                <Image source={uriObj} contentFit="cover" style={{ flex: 1 }} />
+              )}
+              <Pressable style={styles.closeIcon} onPress={() => setFile(null)}>
+                <Icon name="delete" size={20} color="white" />
+              </Pressable>
+            </View>
+          )}
+        </ScrollView>
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: theme.colors.background,
+              borderTopColor: theme.colors.gray,
+            },
+          ]}
+        >
+          <View style={styles.mediaIcons}>
+            <TouchableOpacity
+              onPress={() => onPick(true)}
+              style={styles.iconButton}
+            >
+              <Icon name="image" size={28} color={theme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => onPick(false)}
+              style={styles.iconButton}
+            >
+              <Icon name="video" size={28} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          <Button
+            title={isEdit ? "Cập nhật" : "Đăng"}
+            loading={loading}
+            onPress={onSubmit}
+            disabled={!body.trim() && !file}
+            buttonStyle={styles.postBtn}
+            hasShadow={false}
+          />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </ScreenWrapper>
   );
 };

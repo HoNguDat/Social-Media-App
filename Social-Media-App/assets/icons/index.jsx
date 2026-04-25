@@ -1,4 +1,5 @@
 import { theme } from "../../constants/theme";
+import AddFriend from "./AddFriend";
 import ArrowLeft from "./ArrowLeft";
 import Call from "./Call";
 import Camera from "./Camera";
@@ -9,6 +10,8 @@ import Comment from "./Comment";
 import Delete from "./Delete";
 import Edit from "./Edit";
 import Eye from "./Eye";
+import EyeOff from "./EyeOff";
+import FriendRequest from "./FriendRequest";
 import Heart from "./Heart";
 import Home from "./Home";
 import Image from "./Image";
@@ -17,6 +20,8 @@ import Location from "./Location";
 import Lock from "./Lock";
 import Logout from "./logout";
 import Mail from "./Mail";
+import Messenger from "./Messenger";
+import Notification from "./Notification";
 import Plus from "./Plus";
 import Search from "./Search";
 import Send from "./Send";
@@ -52,10 +57,19 @@ const icons = {
   circlePlus: Circleplus,
   circleMinus: CircleMinus,
   cancel: Cancel,
+  addFriend: AddFriend,
+  messenger: Messenger,
+  friendRequest: FriendRequest,
+  notification: Notification,
+  eyeOff: EyeOff,
 };
 
 const Icon = ({ name, ...props }) => {
   const IconComponent = icons[name];
+  if (!IconComponent) {
+    console.warn(`Icon "${name}" không tồn tại!`);
+    return <icons.home {...props} />;
+  }
   return (
     <IconComponent
       height={props.size || 24}

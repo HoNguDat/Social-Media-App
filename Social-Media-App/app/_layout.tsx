@@ -1,26 +1,25 @@
-import Icon from "@/assets/icons";
-import DrawerContent from "@/components/DrawerContent";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
-import { hp } from "@/helpers/common";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { useRouter } from "expo-router";
-import { Drawer } from "expo-router/drawer";
-import { StatusBar } from "expo-status-bar";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getUserData } from "../services/userService";
+const queryClient = new QueryClient();
 const _layout = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -40,14 +39,17 @@ const MainLayout = () => {
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setAuth(session?.user);
-        updateUserData(session?.user, session?.user.email);
-        router.replace("/home");
-      } else {
-        setAuth(null);
-        router.replace("/welcome");
-      }
+      // Chạy sau 1 khoảng thời gian cực ngắn để tránh lỗi "before mounting"
+      setTimeout(() => {
+        if (session) {
+          setAuth(session?.user);
+          updateUserData(session?.user, session?.user.email);
+          router.replace("/drawer/home");
+        } else {
+          setAuth(null);
+          router.replace("/welcome");
+        }
+      }, 5);
     });
   }, []);
 
@@ -58,64 +60,29 @@ const MainLayout = () => {
     }
   };
 
+  // CHỈ TRẢ VỀ DUY NHẤT 1 NAVIGATOR Ở CẤP CAO NHẤT
   return (
-    <>
-      <StatusBar
-        key={isDarkMode ? "light" : "dark"}
-        style={isDarkMode ? "light" : "dark"}
-      />
-      <Drawer
-        drawerContent={(props) => <DrawerContent {...props} />}
-        screenOptions={{
-          headerShown: false,
-          drawerActiveTintColor: theme.colors.primary,
-          drawerInactiveTintColor: theme.colors.textLight,
-          drawerStyle: {
-            backgroundColor: theme.colors.background,
-            width: "80%",
-          },
-          drawerType: "front",
-          overlayColor: "rgba(0,0,0,0.5)",
-        }}
-      >
-        <Drawer.Screen
-          name="home"
-          options={{
-            drawerLabel: "Bảng feed",
-            drawerLabelStyle: { color: theme.colors.text },
-            drawerIcon: ({ color }) => (
-              <Icon name="home" size={hp(2.5)} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="postDetails"
-          options={{
-            drawerItemStyle: { display: "none" },
-            swipeEnabled: false,
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="newPost"
-          options={{
-            drawerItemStyle: { display: "none" },
-            swipeEnabled: false,
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="notification"
-          options={{
-            drawerLabel: "Thông báo",
-            drawerLabelStyle: { color: theme.colors.text },
-            drawerIcon: ({ color }) => (
-              <Icon name="heart" size={hp(2.5)} color={color} />
-            ),
-          }}
-        />
-      </Drawer>
-    </>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.colors.background },
+        animation: "slide_from_right",
+        gestureEnabled: true, // Cho phép vuốt back cho iOS
+      }}
+    >
+      {/* Màn hình chính là Drawer - Nơi có nút 3 gạch */}
+      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+
+      {/* Các màn hình con - Nằm ngoài Drawer để vuốt Back mượt mà */}
+      <Stack.Screen name="postDetails" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="editProfile" />
+
+      {/* Các màn hình Auth */}
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="signUp" />
+    </Stack>
   );
 };
 

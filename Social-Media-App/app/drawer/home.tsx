@@ -26,7 +26,7 @@ const Home = () => {
 
   const getPosts = useCallback(async () => {
     if (!hasMore) return;
-    let res = await fetchPosts(limit);
+    let res: any = await fetchPosts(limit);
     if (res.success && res.data) {
       if (res.data.length === posts.length) setHasMore(false);
       setPosts(res.data);
@@ -35,14 +35,14 @@ const Home = () => {
   }, [hasMore, limit, posts.length]);
   const handlePostEvent = useCallback(async (payload: any) => {
     if (payload.eventType === "INSERT" && payload?.new?.id) {
-      let res = await fetchPostDetails(payload.new.id);
+      let res: any = await fetchPostDetails(payload.new.id);
 
       if (res.success && res.data) {
         const newFullPost = res.data;
         setPosts((prevPosts) => [newFullPost, ...prevPosts]);
       } else {
         let newPost = { ...payload.new };
-        let userRes = await getUserData(newPost.userId);
+        let userRes: any = await getUserData(newPost.userId);
         newPost.user = userRes.success ? userRes.data : {};
         newPost.postLikes = [];
         newPost.comments = [{ count: 0 }];
@@ -52,7 +52,7 @@ const Home = () => {
 
     if (payload.eventType === "UPDATE") {
       console.log("Realtime Update triggered for ID:", payload.new.id);
-      let res = await fetchPostDetails(payload.new.id);
+      let res: any = await fetchPostDetails(payload.new.id);
 
       if (res.success && res.data) {
         const fullUpdatedPost = res.data;

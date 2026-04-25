@@ -40,15 +40,21 @@ const BottomTab = ({ translateY, user }: BottomTabProps) => {
         },
       ]}
     >
-      <Pressable onPress={() => router.push("/home")} style={styles.tabItem}>
+      <Pressable
+        onPress={() => router.push("/drawer/home")}
+        style={styles.tabItem}
+      >
         <Icon
           name="home"
           size={hp(3)}
           color={isHome ? theme.colors.primary : theme.colors.text}
         />
       </Pressable>
-      <Pressable onPress={() => console.log("video")} style={styles.tabItem}>
-        <Icon name="video" size={hp(3)} color={theme.colors.text} />
+      <Pressable
+        onPress={() => console.log("friend requests")}
+        style={styles.tabItem}
+      >
+        <Icon name="friendRequest" size={hp(3)} color={theme.colors.text} />
       </Pressable>
 
       <Pressable onPress={() => router.push("/newPost")} style={styles.tabItem}>
@@ -63,7 +69,7 @@ const BottomTab = ({ translateY, user }: BottomTabProps) => {
         onPress={() => console.log("notifications")}
         style={styles.tabItem}
       >
-        <Icon name="heart" size={hp(3)} color={theme.colors.text} />
+        <Icon name="notification" size={hp(3)} color={theme.colors.text} />
       </Pressable>
 
       <Pressable onPress={() => router.push("/profile")} style={styles.tabItem}>

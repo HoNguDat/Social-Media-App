@@ -31,6 +31,31 @@ export const fetchPosts = async (limit = 10) => {
     };
   }
 };
+
+export const fetchPostsByUserId = async (userId: string, limit = 10) => {
+  try {
+    const { data, error } = await supabase
+      .from("posts")
+      .select(
+        `*, 
+        user: users(id, name, image), 
+        postLikes(*), 
+        comments(count)`,
+      )
+      .eq("userId", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.log("Fetch user posts error: ", error);
+      return { success: false, msg: error.message };
+    }
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, msg: "An error occurred" };
+  }
+};
+
 export const fetchPostDetails = async (postId: string) => {
   try {
     const { data, error } = await supabase

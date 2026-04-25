@@ -47,3 +47,40 @@ export const updateUser = async (
     };
   }
 };
+
+export const searchUsers = async (
+  query: string,
+  currentUserId: string,
+  page: number = 1,
+) => {
+  try {
+    if (!query.trim()) {
+      return { success: true, data: [], nextPage: null };
+    }
+
+    const LIMIT = 20;
+    const from = (page - 1) * LIMIT;
+    const to = from + LIMIT - 1;
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, name, image, bio")
+      .ilike("name", `%${query}%`)
+      .neq("id", currentUserId)
+      .range(from, to);
+
+    if (error) {
+      console.error("searchUsers Error: ", error);
+      return { success: false, msg: "Không thể tìm kiếm người dùng" };
+    }
+
+    return {
+      success: true,
+      data,
+      nextPage: data.length === LIMIT ? page + 1 : null,
+    };
+  } catch (error) {
+    console.error("searchUsers Catch: ", error);
+    return { success: false, msg: "Đã có lỗi xảy ra" };
+  }
+};

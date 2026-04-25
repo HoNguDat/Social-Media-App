@@ -91,8 +91,8 @@ const PostCard: React.FC<PostCardProps> = ({
   }, [item?.postLikes]);
 
   const liked = useMemo(
-    () => likes.some((like) => like.userId == currentUser.id),
-    [likes, currentUser.id],
+    () => likes.some((like) => like.userId == currentUser?.id),
+    [likes, currentUser?.id],
   );
 
   const created_at = useMemo(
@@ -118,7 +118,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
       let res = await removePostLike(item.id as number, currentUser?.id);
       if (!res.success) {
-        setLikes(oldLikes); // Rollback nếu lỗi
+        setLikes(oldLikes);
         Alert.alert("Lỗi", "Không thể bỏ thích bài viết");
       }
     } else {
@@ -131,7 +131,7 @@ const PostCard: React.FC<PostCardProps> = ({
         postId: item.id as any,
       });
       if (!res.success) {
-        setLikes(oldLikes); // Rollback nếu lỗi
+        setLikes(oldLikes);
         Alert.alert("Lỗi", "Không thể thích bài viết");
       }
     }
@@ -229,7 +229,7 @@ const PostCard: React.FC<PostCardProps> = ({
         </View>
 
         <View style={styles.content}>
-          <View style={styles.postBody}>
+          <View>
             {item?.body && (
               <Text
                 style={[styles.contentBodyText, { color: theme.colors.text }]}
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   userName: {
-    fontSize: hp(1.7),
+    fontSize: hp(2),
     fontWeight: theme.fonts.medium,
   },
   postTime: {
@@ -478,11 +478,13 @@ const styles = StyleSheet.create({
     fontWeight: theme.fonts.medium,
   },
   content: {
-    gap: 10,
+    gap: hp(1.5),
+    paddingVertical: hp(1),
   },
   contentBodyText: {
-    fontSize: hp(1.75),
+    fontSize: hp(1.9),
     lineHeight: hp(2.4),
+    textAlign: "left",
   },
   postMedia: {
     height: hp(40),
@@ -490,9 +492,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.xl,
     borderCurve: "continuous",
   },
-  postBody: {
-    marginLeft: 5,
-  },
+
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -512,9 +512,7 @@ const styles = StyleSheet.create({
   count: {
     fontSize: hp(1.8),
   },
-  mainClickableArea: {
-    // Đảm bảo vùng nhấn bao phủ toàn bộ nội dung trừ footer
-  },
+  mainClickableArea: {},
   moreIcon: {
     padding: 5,
   },
