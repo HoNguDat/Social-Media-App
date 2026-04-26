@@ -72,7 +72,7 @@ const PostDetails = () => {
           Alert.alert(
             "Thông báo",
             "Bài viết này đã bị xóa hoặc không còn tồn tại.",
-            [{ text: "OK", onPress: () => router.replace("/home") }],
+            [{ text: "OK", onPress: () => router.replace("/drawer/home") }],
           );
         },
       )
@@ -111,7 +111,7 @@ const PostDetails = () => {
         setPosts(res.data);
       } else {
         Alert.alert("Lỗi", "Bài viết này không tồn tại.", [
-          { text: "OK", onPress: () => router.replace("/home") },
+          { text: "OK", onPress: () => router.replace("/drawer/home") },
         ]);
       }
       setStartLoading(false);

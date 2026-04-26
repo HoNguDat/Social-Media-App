@@ -4,10 +4,13 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import * as SplashScreen from "expo-splash-screen";
+import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { getUserData } from "../services/userService";
+
+SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 const _layout = () => {
   return (
@@ -36,49 +39,67 @@ const MainLayout = () => {
   const { setAuth, setUserData } = useAuth();
   const { theme, isDarkMode } = useTheme();
   const router = useRouter();
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
-      // Chạy sau 1 khoảng thời gian cực ngắn để tránh lỗi "before mounting"
-      setTimeout(() => {
-        if (session) {
-          setAuth(session?.user);
-          updateUserData(session?.user, session?.user.email);
-          router.replace("/drawer/home");
-        } else {
-          setAuth(null);
-          router.replace("/welcome");
-        }
-      }, 5);
-    });
+    const prepareApp = async () => {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, sess) => {
+        setSession(sess);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setIsAppReady(true);
+      return () => subscription.unsubscribe();
+    };
+
+    prepareApp();
   }, []);
 
+  useEffect(() => {
+    if (isAppReady) {
+      SplashScreen.hideAsync();
+
+      if (session) {
+        setAuth(session.user);
+        updateUserData(session.user, session.user.email);
+        router.replace("/drawer/home");
+      } else {
+        setAuth(null);
+        router.replace("/welcome");
+      }
+    }
+  }, [isAppReady, session]);
+
+  if (!isAppReady) return null;
+
   const updateUserData = async (user: User, email: string | undefined) => {
+    if (!user) return;
     let res = await getUserData(user?.id);
     if (res.success) {
       setUserData({ ...res.data, email });
     }
   };
 
-  // CHỈ TRẢ VỀ DUY NHẤT 1 NAVIGATOR Ở CẤP CAO NHẤT
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: theme.colors.background },
         animation: "slide_from_right",
-        gestureEnabled: true, // Cho phép vuốt back cho iOS
+        gestureEnabled: true,
       }}
     >
-      {/* Màn hình chính là Drawer - Nơi có nút 3 gạch */}
       <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
 
-      {/* Các màn hình con - Nằm ngoài Drawer để vuốt Back mượt mà */}
       <Stack.Screen name="postDetails" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="editProfile" />
+      <Stack.Screen name="notification" />
+      <Stack.Screen name="newPost" />
+      <Stack.Screen name="friendRequest" />
 
-      {/* Các màn hình Auth */}
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="login" />
       <Stack.Screen name="signUp" />

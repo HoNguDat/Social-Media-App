@@ -1,108 +1,232 @@
-import Button from "@/components/Button";
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { theme } from "@/constants/theme";
-import { hp, wp } from "@/helpers/common";
-import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Image,
-  Pressable,
-  StatusBar,
+  ImageBackground,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
-const Welcome = () => {
+import Svg, {
+  Defs,
+  Stop,
+  LinearGradient as SvgGradient,
+  Text as SvgText,
+} from "react-native-svg";
+import { hp, wp } from "../helpers/common";
+
+const GradientHub = () => (
+  <Svg height="40" width="80">
+    <Defs>
+      <SvgGradient id="gradHub" x1="0" y1="0" x2="1" y2="0">
+        <Stop offset="0" stopColor="#4A7BFF" />
+        <Stop offset="1" stopColor="#22C1C3" />
+      </SvgGradient>
+    </Defs>
+    <SvgText fill="url(#gradHub)" fontSize="32" fontWeight="700" x="0" y="31">
+      Hub
+    </SvgText>
+  </Svg>
+);
+
+export default function Welcome() {
+  const router = useRouter();
   return (
-    <ScreenWrapper bg="white">
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
+    <ImageBackground
+      source={require("../assets/images/background.png")}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.topSection}>
         <Image
-          style={styles.welcomeImage}
-          source={require("../assets/images/welcome.png")}
+          source={require("../assets/images/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
         />
-        <View style={{ gap: 20 }}>
-          <Text style={styles.title}>LinkUp!</Text>
-          <Text style={styles.punchLine}>
-            Where every thought finds a home and every image tells a story.
-          </Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.pureText}>Pure</Text>
+          <GradientHub />
+        </View>
+        <Text style={styles.subtitle}>Kết nối tử tế – Cộng đồng văn minh</Text>
+      </View>
+
+      <View style={styles.midSection}>
+        <Image
+          source={require("../assets/images/people.png")}
+          style={styles.illustration}
+          resizeMode="contain"
+        />
+      </View>
+
+      <View style={styles.bottomSection}>
+        <View style={styles.featuresCard}>
+          <View style={styles.featureItem}>
+            <View style={[styles.iconCircle, { backgroundColor: "#E0E7FF" }]}>
+              <Text style={styles.icon}>🛡️</Text>
+            </View>
+            <Text style={styles.featureText}>An toàn{"\n"}& Minh bạch</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <View style={[styles.iconCircle, { backgroundColor: "#CCFBF1" }]}>
+              <Text style={styles.icon}>👥</Text>
+            </View>
+            <Text style={styles.featureText}>Cộng đồng{"\n"}văn minh</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <View style={[styles.iconCircle, { backgroundColor: "#F3E8FF" }]}>
+              <Text style={styles.icon}>💜</Text>
+            </View>
+            <Text style={styles.featureText}>Tích cực{"\n"}& Tử tế</Text>
+          </View>
         </View>
 
-        <View style={styles.footer}>
-          <Button
-            title="Getting Started"
-            buttonStyle={{ marginHorizontal: wp(3) }}
-            onPress={() => {
-              router.push("/signUp");
-            }}
-          />
-
-          <View style={styles.bottomTextContainer}>
-            <Text style={styles.loginText}>Already have an account !</Text>
-            <Pressable
-              onPress={() => {
-                router.push("/login");
-              }}
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            onPress={() => router.push("/signUp")}
+            activeOpacity={0.8}
+            style={styles.buttonWrapper}
+          >
+            <LinearGradient
+              colors={["#4A7BFF", "#22C1C3"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.button}
             >
-              <Text
-                style={[
-                  styles.loginText,
-                  {
-                    color: theme.colors.primaryDark as any,
-                    fontWeight: theme.fonts.semibold as any,
-                  },
-                ]}
-              >
-                Login
-              </Text>
-            </Pressable>
+              <Text style={styles.buttonText}>Getting Started →</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <View style={styles.loginRow}>
+            <Text style={styles.noAccountText}>Already have account? </Text>
+            <TouchableOpacity onPress={() => router.push("/login")}>
+              <Text style={styles.loginText}>Login</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
-    </ScreenWrapper>
+    </ImageBackground>
   );
-};
-
-export default Welcome;
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(4),
+  },
+  topSection: {
     alignItems: "center",
-    justifyContent: "space-around",
-    backgroundColor: "white",
-    paddingHorizontal: wp(4),
+    marginTop: hp(2),
   },
-  welcomeImage: {
-    height: hp(30),
-    width: wp(100),
-    alignSelf: "center",
+  logo: {
+    width: wp(70),
+    height: wp(70),
+    position: "absolute",
+    top: hp(-5),
   },
-  title: {
-    color: theme.colors.text,
-    fontSize: hp(4),
-    textAlign: "center",
-    fontWeight: theme.fonts.bold as any,
-  },
-  punchLine: {
-    textAlign: "center",
-    paddingHorizontal: wp(10),
-    fontSize: hp(1.7),
-    color: theme.colors.text,
-  },
-  footer: {
-    gap: 30,
-    width: "100%",
-  },
-  bottomTextContainer: {
+  titleContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
+    marginTop: hp(18),
+  },
+  pureText: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#0F172A",
+    includeFontPadding: false,
+  },
+  subtitle: {
+    color: "#64748B",
+    marginTop: hp(1),
+    fontSize: hp(1.9),
+    fontWeight: "500",
+  },
+  midSection: {
+    flex: 1,
+    height: hp(28),
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  illustration: {
+    width: wp(85),
+    height: hp(24),
+    zIndex: 2,
+  },
+  bottomSection: {
+    width: "100%",
+  },
+  featuresCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    padding: 15,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.5)",
+    marginBottom: hp(3),
+  },
+
+  featureItem: {
+    alignItems: "center",
+    width: "30%",
+  },
+  iconCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  icon: {
+    fontSize: 20,
+  },
+  featureText: {
+    textAlign: "center",
+    fontSize: hp(1.5),
+    fontWeight: "600",
+    color: "#334155",
+    lineHeight: 18,
+  },
+  actionContainer: {
+    marginTop: hp(3),
+  },
+  buttonWrapper: {
+    shadowColor: "#4A7BFF",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  button: {
+    width: "100%",
+    paddingVertical: hp(2.2),
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: hp(2.1),
+  },
+  loginRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    justifyContent: "center",
+  },
+  noAccountText: {
+    color: "#64748B",
+    fontSize: hp(1.8),
   },
   loginText: {
-    textAlign: "center",
-    color: theme.colors.text,
-    fontSize: hp(1.7),
+    color: "#2563EB",
+    fontWeight: "700",
+    fontSize: hp(1.8),
+    textDecorationLine: "underline",
   },
 });

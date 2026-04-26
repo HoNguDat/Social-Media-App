@@ -36,6 +36,13 @@ const ScreenWrapper = ({
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
       <StatusBar style={darkStatusBar ? "dark" : "light"} />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
+          </View>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -45,25 +52,10 @@ const ScreenWrapper = ({
           <View
             style={[
               styles.container,
-              {
-                paddingTop,
-                paddingBottom,
-                backgroundColor: bg,
-              },
+              { paddingTop, paddingBottom, backgroundColor: bg },
             ]}
           >
             {children}
-
-            {loading && (
-              <View style={styles.loadingOverlay}>
-                <View style={styles.loadingBox}>
-                  <ActivityIndicator
-                    size="large"
-                    color={theme.colors.primary}
-                  />
-                </View>
-              </View>
-            )}
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

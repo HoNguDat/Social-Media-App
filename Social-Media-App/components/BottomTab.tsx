@@ -1,6 +1,5 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
-import { theme } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp } from "@/helpers/common";
 import { User } from "@/models/userModel";
@@ -21,9 +20,12 @@ const BottomTab = ({ translateY, user }: BottomTabProps) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const isHome = pathname === "/home";
+  const isHome = pathname === "/drawer/home";
   const isnewPost = pathname === "/newPost";
   const isprofile = pathname === "/profile";
+  const isnotification = pathname === "/notification";
+  const isFriendRequest = pathname === "/friendRequest";
+  const activeColor = "rgb(21, 156, 255)";
   const animatedBarStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
@@ -33,50 +35,50 @@ const BottomTab = ({ translateY, user }: BottomTabProps) => {
       style={[
         styles.bottomTab,
         animatedBarStyle,
-        {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.gray,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
-        },
+        { backgroundColor: theme.colors.surface },
       ]}
     >
+      {/* Tab Home */}
       <Pressable
         onPress={() => router.push("/drawer/home")}
         style={styles.tabItem}
       >
         <Icon
           name="home"
-          size={hp(3)}
-          color={isHome ? theme.colors.primary : theme.colors.text}
+          size={hp(3.2)}
+          color={isHome ? activeColor : theme.colors.text}
+          fill={isHome ? activeColor : "none"}
         />
       </Pressable>
       <Pressable
-        onPress={() => console.log("friend requests")}
+        onPress={() => router.push("/friendRequest")}
         style={styles.tabItem}
       >
-        <Icon name="friendRequest" size={hp(3)} color={theme.colors.text} />
-      </Pressable>
-
-      <Pressable onPress={() => router.push("/newPost")} style={styles.tabItem}>
         <Icon
-          name="plus"
-          size={hp(3)}
-          color={isnewPost ? theme.colors.primary : theme.colors.text}
+          name="friendRequest"
+          size={hp(3.2)}
+          color={isFriendRequest ? activeColor : theme.colors.text}
+          fill={isFriendRequest ? activeColor : "none"}
         />
       </Pressable>
 
+      {/* Tab Notification */}
       <Pressable
-        onPress={() => console.log("notifications")}
+        onPress={() => router.push("/notification")}
         style={styles.tabItem}
       >
-        <Icon name="notification" size={hp(3)} color={theme.colors.text} />
+        <Icon
+          name="notification"
+          size={hp(3.2)}
+          color={isnotification ? activeColor : theme.colors.text}
+          fill={isnotification ? activeColor : "none"}
+        />
       </Pressable>
-
       <Pressable onPress={() => router.push("/profile")} style={styles.tabItem}>
         <View
           style={[
             styles.avatarWrapper,
-            isprofile && { borderColor: theme.colors.primary, borderWidth: 2 },
+            isprofile && { borderColor: activeColor },
           ]}
         >
           <Avatar
@@ -98,32 +100,23 @@ export default BottomTab;
 
 const styles = StyleSheet.create({
   bottomTab: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingTop: 12,
-    borderTopWidth: 0.5,
-    // Đổ bóng (Shadow) trong Dark Mode nên mờ hơn hoặc tắt đi
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 10,
+    height: hp(8),
+    borderTopWidth: 1,
+    borderTopColor: "#f1f1f1",
   },
   tabItem: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 10,
   },
   avatarWrapper: {
     padding: 2,
-    borderRadius: theme.radius.sm + 4,
+    borderRadius: 50,
     borderWidth: 2,
     borderColor: "transparent",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

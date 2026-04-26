@@ -1,18 +1,21 @@
 import Icon from "@/assets/icons";
-import Button from "@/components/Button";
 import Input from "@/components/Input";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
 import { hp, wp } from "@/helpers/common";
 import { useMutation } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
+  ImageBackground,
   Keyboard,
   Pressable,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { AuthService } from "../services/authService";
@@ -51,8 +54,12 @@ const SignUp = () => {
   }, [signUpUser]);
 
   return (
-    <ScreenWrapper bg="white">
-      <View style={styles.container}>
+    <ScreenWrapper bg="transparent" loading={isPending}>
+      <ImageBackground
+        source={require("../assets/images/background.png")}
+        style={styles.container}
+        resizeMode="cover"
+      >
         <View>
           <Text style={styles.welcomeText}>Let,</Text>
           <Text style={styles.welcomeText}>Get Started !</Text>
@@ -93,12 +100,29 @@ const SignUp = () => {
             }
           />
 
-          <Text style={styles.forgotPassword}>Forgot Password ?</Text>
+          <Text style={styles.forgotPassword}>Quên mật khẩu ?</Text>
 
-          <Button title="Sign Up" onPress={onSubmit} loading={isPending} />
+          <TouchableOpacity
+            onPress={onSubmit}
+            activeOpacity={0.8}
+            disabled={isPending}
+            style={styles.buttonWrapper}
+          >
+            <LinearGradient
+              colors={["#4A7BFF", "#22C1C3"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.button}
+            >
+              {isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.buttonText}>Đăng ký</Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account ?</Text>
           <Pressable onPress={() => router.push("/login")}>
@@ -115,7 +139,7 @@ const SignUp = () => {
             </Text>
           </Pressable>
         </View>
-      </View>
+      </ImageBackground>
     </ScreenWrapper>
   );
 };
@@ -130,17 +154,37 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   welcomeText: {
+    marginTop: hp(1),
     fontSize: hp(4),
     fontWeight: theme.fonts.bold as any,
     color: theme.colors.text,
   },
   form: {
+    marginTop: hp(1),
     gap: 25,
   },
   forgotPassword: {
     textAlign: "right",
     fontWeight: theme.fonts.semibold as any,
     color: theme.colors.text,
+  },
+  buttonWrapper: {
+    shadowColor: "#4A7BFF",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  button: {
+    width: "100%",
+    paddingVertical: hp(2.2),
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: hp(2.1),
   },
   footer: {
     flexDirection: "row",

@@ -122,7 +122,6 @@ const PostCard: React.FC<PostCardProps> = ({
         Alert.alert("Lỗi", "Không thể bỏ thích bài viết");
       }
     } else {
-      // Giả định thêm like thành công
       const newLike = { userId: currentUser.id, postId: item.id };
       setLikes((prev) => [...prev, newLike as any]);
 

@@ -6,7 +6,8 @@ import { User } from "@/models/userModel";
 import { DrawerActions } from "@react-navigation/native";
 import { router, useNavigation } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { PureHubLogo } from "./Logo";
 
 interface HomeHeaderProps {
   user: User | null;
@@ -30,7 +31,7 @@ const HomeHeader = ({ user }: HomeHeaderProps) => {
           />
         </Pressable>
 
-        <Text style={[styles.title, { color: theme.colors.text }]}>LinkUp</Text>
+        <PureHubLogo size={hp(3.2)} color={theme.colors.text} />
       </View>
       <View style={styles.icon}>
         <Pressable
