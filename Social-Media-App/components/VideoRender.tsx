@@ -13,7 +13,6 @@ export const VideoRender = ({ file, style }: { file: string; style: any }) => {
       style={style}
       contentFit="cover"
       nativeControls
-      allowsFullscreen
     />
   );
 };

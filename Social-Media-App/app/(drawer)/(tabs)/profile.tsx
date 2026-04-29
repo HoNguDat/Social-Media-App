@@ -13,7 +13,6 @@ import Animated from "react-native-reanimated";
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
 import BackButton from "@/components/BackButton";
-import BottomTab from "@/components/BottomTab";
 import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
 
@@ -297,8 +296,6 @@ const Profile = () => {
             postsList
           )}
         </Animated.ScrollView>
-
-        <BottomTab translateY={translateY} user={currentUser} />
       </View>
     </ScreenWrapper>
   );

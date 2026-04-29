@@ -38,7 +38,7 @@ const Login = () => {
       return await AuthService.signIn(email, password);
     },
     onSuccess: () => {
-      router.replace("/drawer/home");
+      router.replace("/(drawer)/(tabs)/home");
     },
     onError: (error: any) => {
       Alert.alert("Đăng nhập thất bại", error.message);

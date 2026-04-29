@@ -1,28 +1,34 @@
+import { TabAnimationContext } from "@/contexts/TabContext";
+import { useContext } from "react";
 import {
-    useAnimatedScrollHandler,
-    useSharedValue,
-    withTiming,
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
+export const useScrollTabAnimation = () => {
+  const TAB_HEIGHT = 80;
+  const context = useContext(TabAnimationContext);
+  if (!context) throw new Error("must be used in provider");
 
-export const useScrollTabAnimation = (threshold = 100) => {
-  const translateY = useSharedValue(0);
-  const lastOffset = useSharedValue(0);
+  const { translateY } = context;
+  const lastOffsetY = useSharedValue(0);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
-      const currentOffset = event.contentOffset.y;
-      const diff = currentOffset - lastOffset.value;
-
-      // Vuốt xuống (diff > 5) và đã scroll qua một khoảng threshold -> Ẩn Tab
-      if (diff > 5 && currentOffset > threshold) {
-        translateY.value = withTiming(100, { duration: 300 });
+      const current = event.contentOffset.y;
+      const diff = current - lastOffsetY.value;
+      if (diff > 5 && current > 100) {
+        translateY.value = withTiming(TAB_HEIGHT, {
+          duration: 300,
+        });
       }
-      // Vuốt lên (diff < -5) -> Hiện Tab
-      else if (diff < -5) {
-        translateY.value = withTiming(0, { duration: 300 });
+      if (diff < -5) {
+        translateY.value = withTiming(0, {
+          duration: 350,
+        });
       }
 
-      lastOffset.value = currentOffset;
+      lastOffsetY.value = current;
     },
   });
 

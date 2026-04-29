@@ -1,97 +1,124 @@
 import Icon from "@/assets/icons";
 import Avatar from "@/components/Avatar";
+import { useAuth } from "@/contexts/AuthContext";
+import { TabAnimationContext } from "@/contexts/TabContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp } from "@/helpers/common";
-import { User } from "@/models/userModel";
-import { router, usePathname } from "expo-router";
-import React from "react";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import React, { useContext } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  SharedValue,
+  Easing,
   useAnimatedStyle,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-interface BottomTabProps {
-  translateY: SharedValue<number>;
-  user: User | null;
-}
-
-const BottomTab = ({ translateY, user }: BottomTabProps) => {
+const BottomTab = ({ state, navigation }: BottomTabBarProps) => {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
-  const isHome = pathname === "/drawer/home";
-  const isnewPost = pathname === "/newPost";
-  const isprofile = pathname === "/profile";
-  const isnotification = pathname === "/notification";
-  const isFriendRequest = pathname === "/friendRequest";
-  const activeColor = "rgb(21, 156, 255)";
+  const context = useContext(TabAnimationContext);
+  if (!context) {
+    throw new Error("useScrollTabAnimation must be used within TabProvider");
+  }
+
+  const { translateY } = context;
+
   const animatedBarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [
+      {
+        translateY: withTiming(translateY.value, {
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+        }),
+      },
+    ],
   }));
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       style={[
         styles.bottomTab,
         animatedBarStyle,
-        { backgroundColor: theme.colors.surface },
+        {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.gray,
+          paddingBottom: insets.bottom,
+          height: hp(6) + insets.bottom,
+        },
       ]}
     >
-      {/* Tab Home */}
-      <Pressable
-        onPress={() => router.push("/drawer/home")}
-        style={styles.tabItem}
-      >
-        <Icon
-          name="home"
-          size={hp(3.2)}
-          color={isHome ? activeColor : theme.colors.text}
-          fill={isHome ? activeColor : "none"}
-        />
-      </Pressable>
-      <Pressable
-        onPress={() => router.push("/friendRequest")}
-        style={styles.tabItem}
-      >
-        <Icon
-          name="friendRequest"
-          size={hp(3.2)}
-          color={isFriendRequest ? activeColor : theme.colors.text}
-          fill={isFriendRequest ? activeColor : "none"}
-        />
-      </Pressable>
+      {state.routes.map((route, index) => {
+        const isFocused = state.index === index;
 
-      {/* Tab Notification */}
-      <Pressable
-        onPress={() => router.push("/notification")}
-        style={styles.tabItem}
-      >
-        <Icon
-          name="notification"
-          size={hp(3.2)}
-          color={isnotification ? activeColor : theme.colors.text}
-          fill={isnotification ? activeColor : "none"}
-        />
-      </Pressable>
-      <Pressable onPress={() => router.push("/profile")} style={styles.tabItem}>
-        <View
-          style={[
-            styles.avatarWrapper,
-            isprofile && { borderColor: activeColor },
-          ]}
-        >
-          <Avatar
-            size={hp(3.2)}
-            uri={
-              typeof user?.image === "string"
-                ? user.image
-                : user?.image?.uri || ""
-            }
-            rounded={theme.radius.sm}
-          />
-        </View>
-      </Pressable>
+        const onPress = () => {
+          const event = navigation.emit({
+            type: "tabPress",
+            target: route.key,
+            canPreventDefault: true,
+          });
+          if (isFocused && route.name === "home") {
+            navigation.emit({
+              type: "scrollToTop",
+              target: route.key,
+            } as any);
+          }
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        return (
+          <Pressable key={route.key} onPress={onPress} style={styles.tabItem}>
+            {route.name === "home" && (
+              <Icon
+                name="home"
+                size={hp(3.2)}
+                color={isFocused ? theme.colors.activity : theme.colors.text}
+                fill={isFocused ? theme.colors.activity : "none"}
+              />
+            )}
+
+            {route.name === "friendRequest" && (
+              <Icon
+                name="friendRequest"
+                size={hp(3.2)}
+                color={isFocused ? theme.colors.activity : theme.colors.text}
+                fill={isFocused ? theme.colors.activity : "none"}
+              />
+            )}
+
+            {route.name === "notification" && (
+              <Icon
+                name="notification"
+                size={hp(3.2)}
+                color={isFocused ? theme.colors.activity : theme.colors.text}
+                fill={isFocused ? theme.colors.activity : "none"}
+              />
+            )}
+
+            {route.name === "profile" && (
+              <View
+                style={[
+                  styles.avatarWrapper,
+                  isFocused && { borderColor: theme.colors.activity },
+                ]}
+              >
+                <Avatar
+                  size={hp(3.2)}
+                  uri={
+                    typeof user?.image === "string"
+                      ? user.image
+                      : user?.image?.uri || ""
+                  }
+                  rounded={theme.radius.sm}
+                />
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
     </Animated.View>
   );
 };
@@ -105,7 +132,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: hp(8),
     borderTopWidth: 1,
-    borderTopColor: "#f1f1f1",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   tabItem: {
     flex: 1,

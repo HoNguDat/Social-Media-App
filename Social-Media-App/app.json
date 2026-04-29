@@ -2,6 +2,18 @@
   "expo": {
     "name": "PureHub",
     "slug": "purehub-new",
+    "scheme": "purehub",
+    "extra": {
+      "eas": {
+        "projectId": "0826b524-d2d2-45e8-a979-d1f04e4c7c72"
+      }
+    },
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
+    },
     "icon": "./assets/images/icon.png",
     "splash": {
       "image": "./assets/images/icon.png",
@@ -28,7 +40,8 @@
           },
           "backgroundColor": "#232323"
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

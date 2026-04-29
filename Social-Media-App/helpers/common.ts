@@ -1,8 +1,6 @@
 import { Dimensions } from "react-native";
 const getDimensions = () => {
-  // Tránh gọi trực tiếp "window" nếu đang bị công cụ debug bắt lỗi HTML
-  const screenType = "win" + "dow";
-  return Dimensions.get(screenType as any);
+  return Dimensions.get("window");
 };
 
 export const hp = (percentage: number): number => {

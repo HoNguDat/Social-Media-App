@@ -7,7 +7,7 @@ import { DrawerActions } from "@react-navigation/native";
 import { router, useNavigation } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { PureHubLogo } from "./Logo";
+import { PureHubLogo } from "./PureHubLogo";
 
 interface HomeHeaderProps {
   user: User | null;
@@ -22,7 +22,7 @@ const HomeHeader = ({ user }: HomeHeaderProps) => {
   return (
     <View style={styles.header}>
       <View style={styles.leftHeader}>
-        <Pressable onPress={handleOpenDrawer} style={styles.hamburgerBtn}>
+        <Pressable onPress={handleOpenDrawer}>
           <Icon
             name={"listView"}
             size={hp(3)}
@@ -31,7 +31,7 @@ const HomeHeader = ({ user }: HomeHeaderProps) => {
           />
         </Pressable>
 
-        <PureHubLogo size={hp(3.2)} color={theme.colors.text} />
+        <PureHubLogo size={hp(3.2)} />
       </View>
       <View style={styles.icon}>
         <Pressable
@@ -84,9 +84,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  hamburgerBtn: {
-    padding: 5,
   },
   title: {
     fontSize: hp(3.2),

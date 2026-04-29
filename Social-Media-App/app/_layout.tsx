@@ -1,78 +1,185 @@
+import { showNotificationBanner } from "@/components/NotificationBanner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TabProvider } from "@/contexts/TabContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
+import * as Notifications from "expo-notifications";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
+import FlashMessage from "react-native-flash-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { registerForPushNotificationsAsync } from "../services/notificationService";
 import { getUserData } from "../services/userService";
 
 SplashScreen.preventAutoHideAsync();
+
 const queryClient = new QueryClient();
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 const _layout = () => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
+      <TabProvider>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <AuthProvider>
+                <MainLayout />
+              </AuthProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </TabProvider>
+      <FlashMessage
+        position="top"
+        floating
+        animationDuration={300}
+        statusBarHeight={0}
+        style={{
+          backgroundColor: "transparent",
+          zIndex: 9999,
+        }}
+      />
     </GestureHandlerRootView>
   );
 };
 
-const AppContent = () => {
-  return (
-    <>
-      <MainLayout />
-    </>
-  );
-};
 const MainLayout = () => {
   const { setAuth, setUserData } = useAuth();
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const router = useRouter();
+  const segments = useSegments();
   const [isAppReady, setIsAppReady] = useState(false);
   const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
-    const prepareApp = async () => {
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, sess) => {
-        setSession(sess);
-      });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (session?.user) {
+      registerForPushNotificationsAsync(session.user.id);
+      const responseSubscription =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          const data = response.notification.request.content.data as {
+            type?: string;
+            postId?: string | number;
+          };
+          if (data?.postId) {
+            router.push({
+              pathname: "/postDetails",
+              params: { postId: data.postId },
+            });
+          }
+        });
+      const channel = supabase
+        .channel("realtime_notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `receiverId=eq.${session.user.id}`,
+          },
+          async (payload) => {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+            const { data: senderData } = await supabase
+              .from("users")
+              .select("name, image")
+              .eq("id", payload.new.senderId)
+              .single();
+
+            showNotificationBanner({
+              title: payload.new.title,
+              userName: senderData?.name || "Người dùng PureHub",
+              userAvatar: payload.new.senderAvatar,
+              postId: payload.new.data?.postId,
+
+              onPress: () => {
+                if (payload.new.data?.postId) {
+                  router.push({
+                    pathname: "/postDetails",
+                    params: {
+                      postId: payload.new.data.postId.toString(),
+                    },
+                  });
+                }
+              },
+            });
+          },
+        )
+        .subscribe();
+
+      return () => {
+        responseSubscription.remove();
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [session]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: sess } }) => {
+      setSession(sess);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+    });
+
+    const prepare = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
       setIsAppReady(true);
-      return () => subscription.unsubscribe();
     };
 
-    prepareApp();
+    prepare();
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (isAppReady) {
-      SplashScreen.hideAsync();
+    if (!isAppReady) return;
 
-      if (session) {
-        setAuth(session.user);
-        updateUserData(session.user, session.user.email);
-        router.replace("/drawer/home");
-      } else {
-        setAuth(null);
+    const isGuestPage =
+      segments[0] === "welcome" ||
+      segments[0] === "login" ||
+      segments[0] === "signUp";
+    const isUserPage =
+      segments[0] === "(drawer)" ||
+      segments[0] === "postDetails" ||
+      segments[0] === "editProfile" ||
+      segments[0] === "searchFriend" ||
+      segments[0] === "newPost";
+
+    if (session) {
+      setAuth(session.user);
+      updateUserData(session.user, session.user.email);
+      if (isGuestPage || !isUserPage) {
+        router.replace("/(drawer)/(tabs)/home");
+      }
+    } else {
+      setAuth(null);
+      if (!isGuestPage) {
         router.replace("/welcome");
       }
     }
-  }, [isAppReady, session]);
 
-  if (!isAppReady) return null;
+    const hideSplash = async () => {
+      await SplashScreen.hideAsync();
+    };
+    hideSplash();
+  }, [isAppReady, session, segments]);
 
   const updateUserData = async (user: User, email: string | undefined) => {
     if (!user) return;
@@ -82,28 +189,33 @@ const MainLayout = () => {
     }
   };
 
+  if (!isAppReady) return null;
+  const isDarkMode = theme.colors.background.toLowerCase() === "#121212";
+  const statusBarStyle = isDarkMode ? "light" : "dark";
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: theme.colors.background },
-        animation: "slide_from_right",
-        gestureEnabled: true,
-      }}
-    >
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+    <>
+      <StatusBar style={statusBarStyle} key={isDarkMode ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+          animation: "slide_from_right",
+          gestureEnabled: true,
+          gestureDirection: "horizontal",
+          fullScreenGestureEnabled: true,
+        }}
+      >
+        <Stack.Screen name="(drawer)" />
+        <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signUp" />
 
-      <Stack.Screen name="postDetails" />
-      <Stack.Screen name="profile" />
-      <Stack.Screen name="editProfile" />
-      <Stack.Screen name="notification" />
-      <Stack.Screen name="newPost" />
-      <Stack.Screen name="friendRequest" />
-
-      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signUp" />
-    </Stack>
+        <Stack.Screen name="postDetails" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="editProfile" options={{ gestureEnabled: true }} />
+        <Stack.Screen name="newPost" />
+        <Stack.Screen name="searchFriend" />
+      </Stack>
+    </>
   );
 };
 

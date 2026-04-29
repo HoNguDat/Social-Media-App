@@ -130,8 +130,6 @@ const NewPost = () => {
       return;
     }
     setLoading(true);
-
-    // 5. Thêm ID vào data để thực hiện Update (Upsert)
     const postData: any = {
       body,
       file,
@@ -154,7 +152,7 @@ const NewPost = () => {
   }, [body, file, user?.id, router, isEdit, params.id]);
 
   return (
-    <ScreenWrapper bg={theme.colors.background}>
+    <ScreenWrapper bg={theme.colors.surface}>
       <View style={styles.container}>
         <Header title={isEdit ? "Chỉnh sửa bài viết" : "Bài viết mới"} />
 
@@ -261,7 +259,7 @@ const NewPost = () => {
 export default React.memo(NewPost);
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: wp(4) },
+  container: { flex: 1, paddingHorizontal: wp(1.5) },
   header: {
     flexDirection: "row",
     alignItems: "center",

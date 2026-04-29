@@ -18,6 +18,7 @@ interface ScreenWrapperProps {
   loading?: boolean;
   darkStatusBar?: boolean;
   withStepBack?: boolean;
+  canDismissKeyboard?: boolean;
 }
 
 const ScreenWrapper = ({
@@ -26,13 +27,23 @@ const ScreenWrapper = ({
   loading = false,
   darkStatusBar = true,
   withStepBack = false,
+  canDismissKeyboard = true,
 }: ScreenWrapperProps) => {
   const insets = useSafeAreaInsets();
 
   const paddingTop =
     insets.top > 0 ? insets.top + 5 : Platform.OS === "ios" ? 30 : 10;
   const paddingBottom = withStepBack ? insets.bottom : 0;
-
+  const Content = (
+    <View
+      style={[
+        styles.container,
+        { paddingTop, paddingBottom, backgroundColor: bg },
+      ]}
+    >
+      {children}
+    </View>
+  );
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
       <StatusBar style={darkStatusBar ? "dark" : "light"} />
@@ -48,16 +59,16 @@ const ScreenWrapper = ({
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View
-            style={[
-              styles.container,
-              { paddingTop, paddingBottom, backgroundColor: bg },
-            ]}
+        {canDismissKeyboard ? (
+          <TouchableWithoutFeedback
+            onPress={Keyboard.dismiss}
+            accessible={false}
           >
-            {children}
-          </View>
-        </TouchableWithoutFeedback>
+            {Content}
+          </TouchableWithoutFeedback>
+        ) : (
+          Content
+        )}
       </KeyboardAvoidingView>
     </View>
   );

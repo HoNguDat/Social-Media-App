@@ -7,7 +7,7 @@ interface LoadingProps {
 }
 const Loading: React.FC<LoadingProps> = ({
   size = "large",
-  color = theme.colors.primary,
+  color = theme.colors.activity,
 }) => {
   return (
     <View style={{ justifyContent: "center", alignItems: "center" }}>

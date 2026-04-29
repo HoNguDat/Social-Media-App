@@ -7,7 +7,7 @@ type ServiceResponse = {
   data?: any;
   msg?: string;
 };
-export const fetchPosts = async (limit = 10) => {
+export const fetchPosts = async (limit: number, offset: number = 0) => {
   try {
     const { data, error } = await supabase
       .from("posts")
@@ -17,18 +17,15 @@ export const fetchPosts = async (limit = 10) => {
         comments(count)`,
       )
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
     if (error) {
       console.log("Fetchs error: ", error);
       return { success: false, msg: error.message };
     }
-    return { success: true, data };
+    return data;
   } catch (error) {
     console.log("Fetchs error: ", error);
-    return {
-      success: false,
-      msg: "An error occurred while fetching posts data",
-    };
+    return [];
   }
 };
 

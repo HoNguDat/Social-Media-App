@@ -1,10 +1,10 @@
 import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import Svg, {
-    Defs,
-    Stop,
-    LinearGradient as SvgGradient,
-    Text as SvgText,
+  Defs,
+  Stop,
+  LinearGradient as SvgGradient,
+  Text as SvgText,
 } from "react-native-svg";
 
 export const GradientHub = ({ size = 32 }: { size?: number }) => {

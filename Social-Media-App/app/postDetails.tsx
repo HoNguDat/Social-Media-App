@@ -5,6 +5,7 @@ import Input from "@/components/Input";
 import Loading from "@/components/Loading";
 import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
+import { NOTIFICATION_TYPES } from "@/constants/notification";
 import { theme } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -12,18 +13,18 @@ import { hp, wp } from "@/helpers/common";
 import { supabase } from "@/lib/supabase";
 import { Comment } from "@/models/comment";
 import { Post } from "@/models/postModel";
-import { User } from "@/models/userModel";
+import { createNotification } from "@/services/notificationService";
 import {
   createComment,
   fetchPostDetails,
   removeComment,
 } from "@/services/postService";
 import { getUserData } from "@/services/userService";
+import { User } from "@supabase/supabase-js";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -128,6 +129,17 @@ const PostDetails = () => {
     let res = await createComment(data);
     setLoading(false);
     if (res.success) {
+      if (user?.id && post?.userId && user.id !== post.userId) {
+        await createNotification({
+          receiverId: post.userId as string,
+          senderId: user.id as string,
+          title: NOTIFICATION_TYPES.COMMENT_POST,
+          data: {
+            postId: post.id,
+            commentText: commentRef.current,
+          },
+        });
+      }
       inputRef?.current?.clear();
       commentRef.current = "";
     } else {
@@ -177,97 +189,87 @@ const PostDetails = () => {
     );
   }
   return (
-    <ScreenWrapper bg={theme.colors.background}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    <ScreenWrapper bg={theme.colors.surface}>
+      <View
+        style={[styles.container, { backgroundColor: theme.colors.surface }]}
       >
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: theme.colors.background },
-          ]}
+        <Header title="Bài viết" showBackButton={true} />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 30 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.list, { paddingBottom: 30 }]}
-            keyboardDismissMode="on-drag"
-            keyboardShouldPersistTaps="handled"
-          >
-            <Header title="Bài viết" showBackButton={true} />
-            {post && (
-              <PostCard
-                item={{
-                  ...(post as Post),
-                  comments: [{ count: post?.comments?.length ?? 0 }],
-                }}
-                currentUser={user as User}
-                router={router}
-                hasShadow={false}
-                showMoreIcon={true}
-              />
-            )}
-            <View style={{ marginVertical: 15, gap: 17 }}>
-              {post?.comments?.map((comment) => {
-                if (isComment(comment)) {
-                  return (
-                    <CommentItem
-                      key={comment.id?.toString()}
-                      item={comment}
-                      canDelete={
-                        user?.id === comment.user?.id ||
-                        user?.id === post.userId
-                      }
-                      onDelete={onDeleteComment}
-                    />
-                  );
-                }
-                return null;
-              })}
-
-              {post?.comments?.length === 0 && (
-                <Text style={{ color: theme.colors.text, marginLeft: 5 }}>
-                  Be first comment
-                </Text>
-              )}
-            </View>
-          </ScrollView>
-          <View
-            style={[
-              styles.stickyInputContainer,
-              {
-                backgroundColor: theme.colors.background,
-                borderTopColor: theme.colors.gray,
-              },
-            ]}
-          >
-            <Input
-              inputRef={inputRef}
-              placeholder="Type comment..."
-              onChangeText={(value) => (commentRef.current = value)}
-              placeholderTextColor={theme.colors.textLight}
-              containerStyle={{
-                flex: 1,
-                height: hp(6.2),
-                borderRadius: theme.radius.xl,
-                backgroundColor: isDarkMode ? theme.colors.surface : "white",
-                borderWidth: 0.5,
-                borderColor: theme.colors.gray,
+          {post && (
+            <PostCard
+              item={{
+                ...(post as Post),
+                comments: [{ count: post?.comments?.length ?? 0 }],
               }}
+              currentUser={user as User}
+              router={router}
+              hasShadow={false}
+              showMoreIcon={true}
             />
-            {loading ? (
-              <View style={styles.loading}>
-                <Loading size="small" />
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.sendIcon} onPress={onNewComment}>
-                <Icon name="send" color={theme.colors.primary} />
-              </TouchableOpacity>
+          )}
+          <View>
+            {post?.comments?.map((comment) => {
+              if (isComment(comment)) {
+                return (
+                  <CommentItem
+                    key={comment.id?.toString()}
+                    item={comment}
+                    canDelete={
+                      user?.id === comment.user?.id || user?.id === post.userId
+                    }
+                    onDelete={onDeleteComment}
+                  />
+                );
+              }
+              return null;
+            })}
+
+            {post?.comments?.length === 0 && (
+              <Text style={{ color: theme.colors.text, marginLeft: 5 }}>
+                Be first comment
+              </Text>
             )}
           </View>
+        </ScrollView>
+        <View
+          style={[
+            styles.stickyInputContainer,
+            {
+              backgroundColor: theme.colors.background,
+              borderTopColor: theme.colors.gray,
+            },
+          ]}
+        >
+          <Input
+            inputRef={inputRef}
+            placeholder="Type comment..."
+            onChangeText={(value) => (commentRef.current = value)}
+            placeholderTextColor={theme.colors.textLight}
+            containerStyle={{
+              flex: 1,
+              height: hp(6.2),
+              borderRadius: theme.radius.xl,
+              backgroundColor: isDarkMode ? theme.colors.surface : "white",
+              borderWidth: 0.5,
+              borderColor: theme.colors.gray,
+            }}
+          />
+          {loading ? (
+            <View style={styles.loading}>
+              <Loading size="small" />
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.sendIcon} onPress={onNewComment}>
+              <Icon name="send" color={theme.colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </ScreenWrapper>
   );
 };
@@ -277,7 +279,7 @@ export default PostDetails;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    overflow: "hidden",
+    paddingHorizontal: wp(1.5),
   },
   stickyInputContainer: {
     flexDirection: "row",
@@ -287,9 +289,6 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
     borderTopWidth: 0.5,
     marginBottom: Platform.OS === "ios" ? hp(2) : 0,
-  },
-  list: {
-    paddingHorizontal: wp(4),
   },
   sendIcon: {
     alignItems: "center",

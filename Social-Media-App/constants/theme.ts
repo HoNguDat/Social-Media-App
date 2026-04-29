@@ -11,6 +11,7 @@ export type ColorTheme = {
   roseLight: string;
   background: string;
   surface: string;
+  activity: string;
 };
 
 export interface AppTheme {
@@ -59,8 +60,9 @@ const lightColors: ColorTheme = {
   textDark: "#1D1D1D",
   rose: "#ef4444",
   roseLight: "#f87171",
-  background: "#F0F2F5",
+  background: "#f0f2f5",
   surface: "#FFFFFF",
+  activity: "#159cff",
 };
 
 const darkColors: ColorTheme = {
@@ -76,6 +78,7 @@ const darkColors: ColorTheme = {
   roseLight: "#ef4444",
   background: "#121212",
   surface: "#1C1C1E",
+  activity: "#159cff",
 };
 
 export const themes = {
