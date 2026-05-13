@@ -5,7 +5,12 @@ import { hp } from "@/helpers/common";
 import { StyleSheet, TouchableOpacity } from "react-native";
 import Reanimated, { useAnimatedStyle } from "react-native-reanimated";
 
-export const renderRightActions = (progess: any, dragX: any, itemId: any) => {
+export const renderRightActions = (
+  progess: any,
+  dragX: any,
+  itemId: string,
+  onDelete: (id: string) => void,
+) => {
   const styleAnimation = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: 0 }],
@@ -16,7 +21,7 @@ export const renderRightActions = (progess: any, dragX: any, itemId: any) => {
     <Reanimated.View style={styleAnimation}>
       <TouchableOpacity
         style={styles.deleteButton}
-        //onPress={() => handleDeleteNotification(itemId)}
+        onPress={() => onDelete(itemId)}
       >
         <Icon name="delete" size={20} color="white" />
       </TouchableOpacity>

@@ -190,9 +190,7 @@ const PostDetails = () => {
   }
   return (
     <ScreenWrapper bg={theme.colors.surface}>
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.surface }]}
-      >
+      <View style={styles.container}>
         <Header title="Bài viết" showBackButton={true} />
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -240,7 +238,7 @@ const PostDetails = () => {
           style={[
             styles.stickyInputContainer,
             {
-              backgroundColor: theme.colors.background,
+              backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.gray,
             },
           ]}

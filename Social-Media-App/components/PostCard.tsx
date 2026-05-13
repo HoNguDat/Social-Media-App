@@ -1,6 +1,7 @@
 import Icon from "@/assets/icons";
 import { NOTIFICATION_TYPES } from "@/constants/notification";
 import { theme } from "@/constants/theme";
+import { toast } from "@/constants/toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, stripHtmlTags } from "@/helpers/common";
 import { getFormattedDate } from "@/helpers/dateFormat";
@@ -172,7 +173,7 @@ const PostCard: React.FC<PostCardProps> = ({
         onPress: async () => {
           const res = await removePost(item.id as number);
           if (res.success) {
-            Alert.alert("Thành công", "Bài viết đã được xóa.");
+            toast.success("Bài viết đã được xóa");
             if (onDelete) {
               onDelete(item.id as number);
             }

@@ -41,7 +41,7 @@ const SignUp = () => {
     },
     onSuccess: () => {
       Alert.alert("Thành công", "Tài khoản của bạn đã được tạo.");
-      router.replace("/drawer/home");
+      router.replace("/(drawer)/(tabs)/home");
     },
     onError: (error: any) => {
       Alert.alert("Đăng ký thất bại", error.message);

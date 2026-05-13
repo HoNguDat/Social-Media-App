@@ -4,6 +4,7 @@ import Button from "@/components/Button";
 import Header from "@/components/Header";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
+import { toast } from "@/constants/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
@@ -145,6 +146,7 @@ const NewPost = () => {
     if (res.success) {
       setBody("");
       setFile(null);
+      toast.success(isEdit ? "Đã cập nhật bài viết" : "Đã đăng bài viết mới");
       router.back();
     } else {
       Alert.alert("Lỗi", "Không thể lưu bài viết");

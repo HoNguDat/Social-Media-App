@@ -1,102 +1,204 @@
 import Header from "@/components/Header";
 import ScreenWrapper from "@/components/ScreenWrapper";
+import { toast } from "@/constants/toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
-import React from "react";
+import { supabase } from "@/lib/supabase";
 import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-
-const mockRequests = [
-  {
-    id: "1",
-    name: "Nguyễn Gia Thụ",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    mutualFriends: 0,
-    time: "1 tuần",
-  },
-  {
-    id: "2",
-    name: "Trịnh Trần Phương Tuấn",
-    avatar: "https://i.pravatar.cc/150?img=2",
-    mutualFriends: 5,
-    time: "38 tuần",
-  },
-  {
-    id: "3",
-    name: "Phùng Thanh Độ",
-    avatar: "https://i.pravatar.cc/150?img=3",
-    mutualFriends: 7,
-    time: "21 tuần",
-  },
-];
+  fetchAcceptedFriends,
+  fetchFriendRequests,
+  respondToRequest,
+} from "@/services/friendService";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
 
 const FriendRequest = () => {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [viewType, setViewType] = useState<"requests" | "friends">("requests");
 
-  const renderItem = ({ item }: any) => (
-    <View style={styles.requestItem}>
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
+  useEffect(() => {
+    if (!user?.id) return;
 
-      <View style={styles.info}>
-        {/* Hàng chứa Tên và Thời gian */}
-        <View style={styles.nameRow}>
-          <Text
-            style={[styles.name, { color: theme.colors.text }]}
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-          <Text style={styles.timeText}>{item.time}</Text>
+    const channel = supabase
+      .channel("friends-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "friends",
+        },
+        (payload) => {
+          queryClient.invalidateQueries({
+            queryKey: ["friendData"],
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  const { data: listData, isLoading } = useQuery({
+    queryKey: ["friendData", viewType, user?.id],
+    queryFn: () =>
+      viewType === "requests"
+        ? fetchFriendRequests(user?.id!)
+        : fetchAcceptedFriends(user?.id!),
+    enabled: !!user?.id,
+
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+
+    select: (res: any) => res.data || [],
+  });
+  const mutation = useMutation({
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: string;
+      action: "accepted" | "deleted";
+    }) => respondToRequest(id, action),
+    onSuccess: (res, variables) => {
+      if (res.success) {
+        toast.success(
+          variables.action === "accepted"
+            ? "Đã trở thành bạn bè"
+            : "Đã gỡ lời mời",
+        );
+        queryClient.invalidateQueries({ queryKey: ["friendData"] });
+      }
+    },
+  });
+
+  const handleResponse = useCallback(
+    (id: string, action: "accepted" | "deleted") => {
+      mutation.mutate({ id, action });
+    },
+    [],
+  );
+  const renderItem = useCallback(
+    ({ item }: any) => {
+      const isRequest = viewType === "requests";
+      const displayUser = isRequest
+        ? item?.sender
+        : item?.sender?.id === user?.id
+          ? item?.receiver
+          : item?.sender;
+
+      if (!displayUser) return null;
+
+      return (
+        <View style={styles.requestItem}>
+          <Image
+            source={
+              displayUser?.image
+                ? { uri: displayUser.image }
+                : require("../../../assets/images/defaultUser.png")
+            }
+            style={styles.avatar}
+          />
+          <View style={styles.info}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: theme.colors.text }]}>
+                {displayUser?.name}
+              </Text>
+              {isRequest && <Text style={styles.timeText}>1 tuần</Text>}
+            </View>
+            <View style={styles.actions}>
+              {isRequest ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.confirmBtn}
+                    onPress={() => handleResponse(item.id, "accepted")}
+                  >
+                    <Text style={styles.confirmText}>Xác nhận</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleResponse(item.id, "deleted")}
+                  >
+                    <Text style={styles.deleteText}>Xóa</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={styles.deleteBtn}>
+                  <Text style={styles.deleteText}>Nhắn tin</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </View>
+      );
+    },
+    [viewType, user?.id, handleResponse, theme],
+  );
 
-        {/* Hàng chứa Nút bấm */}
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.confirmBtn}>
-            <Text style={styles.confirmText}>Xác nhận</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.deleteBtn}>
-            <Text style={styles.deleteText}>Xóa</Text>
-          </TouchableOpacity>
-        </View>
+  const ListEmptyComponent = useMemo(
+    () => (
+      <View style={styles.noData}>
+        <Text style={{ color: theme.colors.textLight }}>
+          Không có dữ liệu hiển thị.
+        </Text>
       </View>
-    </View>
+    ),
+    [theme],
   );
 
   return (
-    <ScreenWrapper bg={theme.colors.surface}>
+    <ScreenWrapper
+      bg={theme.colors.surface}
+      loading={isLoading || mutation.isPending}
+    >
       <View style={styles.container}>
         <Header title="Bạn bè" showBackButton />
+        <View style={styles.topTabs}>
+          {["requests", "friends"].map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={[styles.tabBtn, viewType === type && styles.activeTab]}
+              onPress={() => setViewType(type as any)}
+            >
+              <Text
+                style={
+                  viewType === type ? styles.activeTabText : styles.tabText
+                }
+              >
+                {type === "requests" ? "Lời mời" : "Tất cả bạn bè"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        {/* Section Header giống Facebook */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-            Lời mời kết bạn
+            {viewType === "requests" ? "Lời mời kết bạn" : "Tất cả bạn bè"}
           </Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-          </TouchableOpacity>
         </View>
 
         <FlatList
-          data={mockRequests}
-          keyExtractor={(item) => item.id}
+          data={listData}
           renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={{ paddingBottom: hp(5), gap: hp(2) }}
+          ListEmptyComponent={ListEmptyComponent}
         />
       </View>
     </ScreenWrapper>
   );
 };
 
-export default FriendRequest;
+export default React.memo(FriendRequest);
 
 const styles = StyleSheet.create({
   container: {
@@ -206,5 +308,32 @@ const styles = StyleSheet.create({
 
   separator: {
     height: hp(2.5),
+  },
+  topTabs: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  tabBtn: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#E4E6EB",
+  },
+  activeTab: {
+    backgroundColor: "#E7F3FF",
+  },
+  tabText: {
+    color: "#050505",
+    fontWeight: "600",
+  },
+  activeTabText: {
+    color: "#1877F2",
+    fontWeight: "600",
+  },
+  noData: {
+    flex: 1,
+    alignItems: "center",
+    marginTop: hp(10),
   },
 });

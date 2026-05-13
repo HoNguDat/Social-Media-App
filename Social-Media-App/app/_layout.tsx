@@ -1,4 +1,5 @@
 import { showNotificationBanner } from "@/components/NotificationBanner";
+import { toastConfig } from "@/components/ToastConfig";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { TabProvider } from "@/contexts/TabContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
@@ -12,7 +13,11 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import FlashMessage from "react-native-flash-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { registerForPushNotificationsAsync } from "../services/notificationService";
 import { getUserData } from "../services/userService";
 
@@ -31,19 +36,21 @@ Notifications.setNotificationHandler({
 });
 
 const _layout = () => {
+  const insets = useSafeAreaInsets();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <TabProvider>
-        <SafeAreaProvider>
+      <SafeAreaProvider>
+        <TabProvider>
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <AuthProvider>
                 <MainLayout />
+                <Toast config={toastConfig} />
               </AuthProvider>
             </ThemeProvider>
           </QueryClientProvider>
-        </SafeAreaProvider>
-      </TabProvider>
+        </TabProvider>
+      </SafeAreaProvider>
       <FlashMessage
         position="top"
         floating
@@ -51,7 +58,7 @@ const _layout = () => {
         statusBarHeight={0}
         style={{
           backgroundColor: "transparent",
-          zIndex: 9999,
+          marginTop: insets.top,
         }}
       />
     </GestureHandlerRootView>

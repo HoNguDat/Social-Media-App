@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Input from "@/components/Input";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { theme } from "@/constants/theme";
+import { toast } from "@/constants/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { hp, wp } from "@/helpers/common";
 import { User } from "@/models/userModel";
@@ -65,10 +66,8 @@ const EditProfile = () => {
       : getUserImageSrc(user.image);
 
   const onSubmit = async () => {
-    console.log("SUBMIT");
     let userData = { ...user };
     const imagetest = userData.image;
-    console.log("IMAGE:", imagetest);
     let { name, phoneNumber, address, image, bio } = userData;
     if (!name || !phoneNumber || !address || !bio || !image) {
       Alert.alert("Profile", "Please fill all the fields");
@@ -77,10 +76,7 @@ const EditProfile = () => {
     }
     setLoading(true);
     if (image && typeof image === "object" && "uri" in image) {
-      console.log("IMAGE OBJECT:", image);
-      console.log("Call upload");
       const imageRes = await uploadFile("profiles", image, true);
-      console.log("UPLOAD RESULT:", imageRes);
       if (imageRes.success && imageRes.publicUrl) {
         userData.image = imageRes.publicUrl!;
       } else {
@@ -92,12 +88,12 @@ const EditProfile = () => {
     if (!currentUser) return;
     const res = await updateUser(currentUser.id, userData);
     setLoading(false);
-    console.log("Update success:", res);
     if (res.success) {
       setUserData({
         ...currentUser,
         ...userData,
       });
+      toast.success("Cập nhật trang cá nhân thành công !");
       router.back();
     }
   };

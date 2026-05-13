@@ -7,19 +7,23 @@ import {
   NotificationType,
   notificationUIConfigs,
 } from "@/constants/notification";
+import { toast } from "@/constants/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
 import { getFormattedDate } from "@/helpers/dateFormat";
 import {
+  deleteNotification,
   fetchNotifications,
   updateNotificationStatus,
 } from "@/services/notificationService";
+import { fetchPostDetails } from "@/services/postService";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -46,19 +50,88 @@ const Notifications = () => {
       queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
     },
   });
+  const { mutate: deleteMutate } = useMutation({
+    mutationFn: deleteNotification,
+    onMutate: async (notificationId) => {
+      // 1. Hủy các query đang chạy để tránh ghi đè dữ liệu
+      await queryClient.cancelQueries({
+        queryKey: ["notifications", user?.id],
+      });
 
-  const handlePress = (item: any, config: any, extraData: any) => {
+      // 2. Lưu lại dữ liệu cũ (backup)
+      const previousNotifications = queryClient.getQueryData([
+        "notifications",
+        user?.id,
+      ]);
+
+      // 3. Cập nhật UI ngay lập tức (Optimistic Update)
+      queryClient.setQueryData(["notifications", user?.id], (old: any) => {
+        return {
+          ...old,
+          data: old?.data?.filter((item: any) => item.id !== notificationId),
+        };
+      });
+
+      // 4. HIỂN THỊ TOAST TÁI SỬ DỤNG
+      toast.deleteInfo("Đã xóa thông báo", () => {
+        // Nếu người dùng bấm hoàn tác (Undo)
+        queryClient.setQueryData(
+          ["notifications", user?.id],
+          previousNotifications,
+        );
+        // Ở đây có thể thêm logic để dừng việc gọi API nếu cần,
+        // nhưng đơn giản nhất là cập nhật lại UI về trạng thái backup.
+      });
+
+      return { previousNotifications };
+    },
+    onError: (err, notificationId, context) => {
+      // Nếu API thật bị lỗi, hiện Toast lỗi và trả lại dữ liệu cũ
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(
+          ["notifications", user?.id],
+          context.previousNotifications,
+        );
+      }
+      toast.error("Không thể xóa thông báo");
+    },
+    onSettled: () => {
+      // Luôn làm tươi dữ liệu sau khi xong
+      queryClient.invalidateQueries({ queryKey: ["notifications", user?.id] });
+    },
+  });
+  const handleDelete = useCallback((id: string) => {
+    deleteMutate(id);
+  }, []);
+
+  const handlePress = async (item: any, config: any, extraData: any) => {
     if (!item.isRead) {
       mutate(item.id);
     }
+    if (extraData?.postId) {
+      const res = await fetchPostDetails(extraData.postId);
 
-    router.push({
-      pathname: config.route as any,
-      params: {
-        postId: extraData?.postId,
-        userId: item.senderId,
-      },
-    });
+      if (!res.success || !res.data) {
+        Alert.alert(
+          "Thông báo",
+          "Bài viết này đã được gỡ bỏ hoặc không còn tồn tại.",
+        );
+        return;
+      }
+
+      router.push({
+        pathname: config.route as any,
+        params: {
+          postId: extraData?.postId,
+          userId: item.senderId,
+        },
+      });
+    } else {
+      router.push({
+        pathname: config.route as any,
+        params: { userId: item.senderId },
+      });
+    }
   };
   const renderItem = useCallback(
     ({ item }: { item: any }) => {
@@ -68,8 +141,8 @@ const Notifications = () => {
       const extraData =
         typeof item.data === "string" ? JSON.parse(item.data) : item.data;
       const isDarkMode = theme.colors.background === "#121212";
-
-      const unreadBg = isDarkMode ? "#1A1A1A" : "#E7F9F1";
+      //#1500fe
+      const unreadBg = isDarkMode ? theme.colors.activity : "#def7ff";
       const readBg = theme.colors.surface;
 
       return (
@@ -78,7 +151,7 @@ const Notifications = () => {
             friction={2}
             rightThreshold={40}
             renderRightActions={(progess, drag) =>
-              renderRightActions(progess, drag, item.id)
+              renderRightActions(progess, drag, item.id, handleDelete)
             }
           >
             <TouchableOpacity
@@ -128,7 +201,7 @@ const Notifications = () => {
                     style={[
                       styles.userName,
                       {
-                        color: theme.colors.text,
+                        color: theme.colors.textDark,
                         fontWeight: theme.fonts.bold,
                       },
                     ]}

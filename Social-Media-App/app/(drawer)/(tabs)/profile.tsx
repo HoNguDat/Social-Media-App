@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
@@ -16,10 +16,17 @@ import BackButton from "@/components/BackButton";
 import PostCard from "@/components/PostCard";
 import ScreenWrapper from "@/components/ScreenWrapper";
 
+import Loading from "@/components/Loading";
+import { toast } from "@/constants/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { hp, wp } from "@/helpers/common";
 import { useScrollTabAnimation } from "@/hooks/useScrollTabAnimation";
+import {
+  cancelFriendRequest,
+  getFriendshipStatus,
+  sendFriendRequest,
+} from "@/services/friendService";
 import { fetchPostsByUserId } from "@/services/postService";
 import { getUserData } from "@/services/userService";
 
@@ -29,7 +36,7 @@ const Profile = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { theme, isDarkMode } = useTheme();
-  const { translateY, scrollHandler } = useScrollTabAnimation();
+  const { scrollHandler } = useScrollTabAnimation();
 
   const targetUserId = (userId as string) || currentUser?.id;
 
@@ -94,11 +101,102 @@ const Profile = () => {
     cameraBtn: isDarkMode ? "#3A3B3C" : "#E4E6EB",
   };
 
+  const { data: friendshipData } = useQuery({
+    queryKey: ["friendship", currentUser?.id, targetUserId],
+    queryFn: () => getFriendshipStatus(currentUser?.id!, targetUserId!),
+    enabled: !!currentUser?.id && !!targetUserId && !isMyProfile,
+  });
+
+  const friendship = friendshipData?.data;
+
+  const sendRequestMutation = useMutation({
+    mutationFn: () => sendFriendRequest(currentUser?.id!, targetUserId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["friendship", currentUser?.id, targetUserId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["friendData"],
+      });
+      toast.success("Đã gửi lời mời kết bạn");
+    },
+  });
+
+  const cancelRequestMutation = useMutation({
+    mutationFn: () => cancelFriendRequest(currentUser?.id!, targetUserId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["friendship", currentUser?.id, targetUserId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["friendData"],
+      });
+      toast.success("Đã hủy lời mời");
+    },
+  });
+
+  const renderFriendShipButton = () => {
+    if (isMyProfile) return null;
+    if (!friendship) {
+      return (
+        <Pressable
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          onPress={() => sendRequestMutation.mutate()}
+        >
+          <Icon name="addFriend" size={20} color="white" strokeWidth={2.5} />
+          <Text style={[styles.buttonText, { color: "white" }]}>
+            Thêm bạn bè
+          </Text>
+        </Pressable>
+      );
+    }
+    if (friendship.status === "pending") {
+      const isSender = friendship.senderId === currentUser?.id;
+
+      if (isSender) {
+        // Mình là người gửi -> Hiện nút Hủy
+        return (
+          <Pressable
+            style={[styles.button, { backgroundColor: dynamicColors.buttonBg }]}
+            onPress={() => cancelRequestMutation.mutate()}
+          >
+            <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+              Hủy lời mời
+            </Text>
+          </Pressable>
+        );
+      } else {
+        return (
+          <Pressable
+            style={[styles.button, { backgroundColor: theme.colors.primary }]}
+            onPress={() => router.push("/friendRequest")}
+          >
+            <Text style={[styles.buttonText, { color: "white" }]}>
+              Phản hồi
+            </Text>
+          </Pressable>
+        );
+      }
+    }
+    if (friendship.status === "accepted") {
+      return (
+        <Pressable
+          style={[styles.button, { backgroundColor: dynamicColors.buttonBg }]}
+        >
+          <Icon name="user" size={20} color={theme.colors.text} />
+          <Text style={[styles.buttonText, { color: theme.colors.text }]}>
+            Bạn bè
+          </Text>
+        </Pressable>
+      );
+    }
+  };
+
   if (userLoading) {
     return (
       <ScreenWrapper bg={theme.colors.background}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Loading size="large" color={theme.colors.primary} />
         </View>
       </ScreenWrapper>
     );
@@ -154,7 +252,6 @@ const Profile = () => {
               )}
             </View>
           </View>
-
           <View style={styles.userInfoSection}>
             <Text style={[styles.userName, { color: theme.colors.textDark }]}>
               {user?.name}
@@ -196,22 +293,7 @@ const Profile = () => {
                 </>
               ) : (
                 <>
-                  <Pressable
-                    style={[
-                      styles.button,
-                      { backgroundColor: theme.colors.primary },
-                    ]}
-                  >
-                    <Icon
-                      name="addFriend"
-                      size={20}
-                      color="white"
-                      strokeWidth={2.5}
-                    />
-                    <Text style={[styles.buttonText, { color: "white" }]}>
-                      Thêm bạn bè
-                    </Text>
-                  </Pressable>
+                  {renderFriendShipButton()}
                   <Pressable
                     style={[
                       styles.button,
@@ -233,7 +315,6 @@ const Profile = () => {
               )}
             </View>
           </View>
-
           <View
             style={[styles.divider, { backgroundColor: dynamicColors.divider }]}
           />

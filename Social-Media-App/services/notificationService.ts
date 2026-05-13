@@ -104,3 +104,16 @@ export const updateNotificationStatus = async (notificationId: string) => {
     return { success: false, msg: error.message };
   }
 };
+export const deleteNotification = async (notificationId: string) => {
+  try {
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", notificationId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, msg: error.message };
+  }
+};

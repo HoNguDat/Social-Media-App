@@ -59,6 +59,7 @@ const ScreenWrapper = ({
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        {/* KIỂM TRA ĐIỀU KIỆN TẠI ĐÂY */}
         {canDismissKeyboard ? (
           <TouchableWithoutFeedback
             onPress={Keyboard.dismiss}
